@@ -1,0 +1,3172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Channel Coding Demo</title>
+<style>
+/* ===================== RESET & BASE ===================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-soft: #cdd9e5;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --accent2: #3fb950;
+  --warn: #f78166;
+  --purple: #bc8cff;
+  --yellow: #e3b341;
+  --pink: #ff7b72;
+  --teal: #39d353;
+  --radius: 12px;
+  --shadow: 0 8px 32px rgba(0,0,0,.45);
+  --header-grad: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #1a2332 100%);
+  --header-glow: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(88,166,255,.12) 0%, transparent 70%);
+  --nav-bg: rgba(13,17,23,.92);
+}
+
+[data-theme="light"] {
+  --bg: #f5f7fb;
+  --surface: #ffffff;
+  --surface2: #eef2f8;
+  --border: #d0d8e6;
+  --text: #1e2733;
+  --muted: #5f6f85;
+  --accent: #1769d1;
+  --accent2: #188f4e;
+  --warn: #d14c2e;
+  --purple: #7a4dd0;
+  --yellow: #b07b11;
+  --pink: #d4474b;
+  --teal: #13886f;
+  --text-soft: #2f3f55;
+  --header-grad: linear-gradient(135deg, #eef3fb 0%, #f8fbff 50%, #e7effb 100%);
+  --header-glow: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(23,105,209,.12) 0%, transparent 70%);
+  --nav-bg: rgba(245,247,251,.92);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+
+/* ===================== SCROLLBAR ===================== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ===================== HEADER ===================== */
+header {
+  background: var(--header-grad);
+  border-bottom: 1px solid var(--border);
+  padding: 60px 24px 48px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--header-glow);
+  pointer-events: none;
+}
+
+header h1 {
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 12px;
+}
+
+header p {
+  color: var(--muted);
+  font-size: 1.1rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.lang-switcher {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 2;
+}
+
+.lang-switcher label {
+  font-size: .82rem;
+  color: var(--muted);
+}
+
+.lang-switcher select {
+  font-size: .82rem;
+  padding: 6px 10px;
+}
+
+.theme-switcher {
+  position: absolute;
+  top: 14px;
+  left: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 2;
+}
+
+.theme-switcher label {
+  font-size: .82rem;
+  color: var(--muted);
+}
+
+/* ===================== NAV ===================== */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--nav-bg);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+nav::-webkit-scrollbar { display: none; }
+
+nav a {
+  display: inline-block;
+  padding: 14px 16px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: .88rem;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: color .2s, border-color .2s;
+}
+nav a:hover, nav a.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ===================== LAYOUT ===================== */
+main { max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
+
+section {
+  margin-bottom: 72px;
+  scroll-margin-top: 60px;
+}
+
+h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+h2 .icon { font-size: 1.4rem; }
+
+h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin: 28px 0 10px;
+}
+
+p { margin-bottom: 14px; color: var(--text-soft); }
+
+.muted { color: var(--muted); font-size: .92rem; }
+
+/* ===================== CARDS ===================== */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin: 20px 0;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.info-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  border-left: 3px solid var(--accent);
+}
+
+.info-card.green { border-left-color: var(--accent2); }
+.info-card.purple { border-left-color: var(--purple); }
+.info-card.warn { border-left-color: var(--warn); }
+.info-card.yellow { border-left-color: var(--yellow); }
+
+.info-card h4 { font-size: .95rem; color: var(--muted); margin-bottom: 4px; }
+.info-card p { font-size: 1.05rem; color: var(--text); margin: 0; }
+
+/* ===================== FORMULA ===================== */
+.formula {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 24px;
+  margin: 16px 0;
+  font-family: 'Courier New', monospace;
+  font-size: 1.15rem;
+  text-align: center;
+  color: var(--text);
+  overflow-x: auto;
+}
+
+/* ===================== MATRIX DISPLAY ===================== */
+.matrix-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  vertical-align: middle;
+  position: relative;
+}
+
+.matrix-bracket {
+  font-size: 2rem;
+  color: var(--muted);
+  line-height: 1;
+  font-weight: 100;
+}
+
+.matrix-inner {
+  display: grid;
+  gap: 6px 14px;
+  padding: 4px 8px;
+}
+
+.matrix-cell {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 6px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  transition: all .35s cubic-bezier(.34,1.56,.64,1);
+  color: var(--text);
+  position: relative;
+}
+
+.matrix-cell.highlight-row { background: rgba(88,166,255,.18); border-color: var(--accent); color: var(--accent); }
+.matrix-cell.highlight-col { background: rgba(188,140,255,.18); border-color: var(--purple); color: var(--purple); }
+.matrix-cell.highlight-active { background: rgba(227,179,65,.25); border-color: var(--yellow); color: var(--yellow); transform: scale(1.15); z-index: 2; }
+.matrix-cell.result-active { background: rgba(63,185,80,.25); border-color: var(--accent2); color: var(--accent2); transform: scale(1.15); }
+.matrix-cell.error-cell { background: rgba(247,129,102,.25); border-color: var(--warn); color: var(--warn); transform: scale(1.1); }
+.matrix-cell.zero-cell { background: var(--surface2); color: var(--muted); }
+
+.matrix-label {
+  font-size: .75rem;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 4px;
+  font-family: 'Courier New', monospace;
+}
+
+.matrix-equation {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+
+.eq-op {
+  font-size: 1.4rem;
+  color: var(--muted);
+  font-weight: 300;
+}
+
+.eq-result-label {
+  font-size: .85rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ===================== ANIMATION PANEL ===================== */
+.anim-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  margin: 24px 0;
+}
+
+.anim-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.anim-step-info {
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: .9rem;
+  color: var(--muted);
+  min-height: 48px;
+  margin: 16px 0;
+  border-left: 3px solid var(--accent);
+}
+
+.anim-step-info strong { color: var(--accent); }
+
+/* ===================== BUTTONS ===================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: .9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .2s;
+  font-family: inherit;
+}
+
+.btn:hover { background: var(--border); }
+.btn:active { transform: scale(.97); }
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover { background: #79b8ff; border-color: #79b8ff; }
+
+.btn-success {
+  background: var(--accent2);
+  border-color: var(--accent2);
+  color: #000;
+}
+.btn-success:hover { background: #56d364; }
+
+.btn-warn {
+  background: var(--warn);
+  border-color: var(--warn);
+  color: #000;
+}
+.btn-warn:hover { background: #ff9988; }
+
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ===================== INPUTS ===================== */
+.input-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+
+label { font-size: .9rem; color: var(--muted); }
+
+input[type="text"], input[type="number"], select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: .95rem;
+  font-family: 'Courier New', monospace;
+  outline: none;
+  transition: border-color .2s;
+}
+
+input[type="text"]:focus, input[type="number"]:focus, select:focus {
+  border-color: var(--accent);
+}
+
+input[type="number"] { width: 70px; }
+input[type="text"] { min-width: 160px; }
+
+select { font-family: inherit; cursor: pointer; }
+
+/* ===================== PARITY BUILDER ===================== */
+.parity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.parity-slot {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.parity-slot h5 {
+  font-size: .85rem;
+  color: var(--purple);
+  margin-bottom: 8px;
+  font-family: 'Courier New', monospace;
+}
+
+.parity-slot p {
+  font-size: .82rem;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: .82rem;
+  color: var(--text);
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  transition: all .15s;
+  user-select: none;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: auto;
+  accent-color: var(--accent);
+}
+
+.checkbox-group label:has(input:checked) {
+  background: rgba(88,166,255,.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ===================== RESULT BOX ===================== */
+.result-box {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+  font-family: 'Courier New', monospace;
+}
+
+.result-box .label {
+  font-size: .92rem;
+  color: var(--text);
+  margin-bottom: 6px;
+  font-family: inherit;
+}
+
+.bit-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.bit {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  transition: all .3s cubic-bezier(.34,1.56,.64,1);
+}
+
+.bit.msg { border-color: var(--accent); color: var(--accent); background: rgba(88,166,255,.1); }
+.bit.par { border-color: var(--purple); color: var(--purple); background: rgba(188,140,255,.1); }
+.bit.error { border-color: var(--warn); color: var(--warn); background: rgba(247,129,102,.18); animation: pulse .7s infinite; }
+.bit.ok { border-color: var(--accent2); color: var(--accent2); background: rgba(63,185,80,.1); }
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
+.bit-label {
+  font-size: .8rem;
+  color: var(--text-soft);
+  text-align: center;
+  margin-top: 3px;
+}
+
+.bit-col { display: flex; flex-direction: column; align-items: center; }
+
+.row-sum-viz {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.row-sum-head {
+  font-size: .84rem;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.row-sum-sub {
+  font-size: .8rem;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.row-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  opacity: .75;
+}
+
+.row-line.active {
+  opacity: 1;
+  border-color: var(--row-color, var(--accent));
+  box-shadow: 0 0 0 1px var(--row-color, var(--accent)) inset;
+}
+
+.row-tag {
+  font-size: .75rem;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.mini-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.mini-cell {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .78rem;
+  font-family: 'Courier New', monospace;
+  color: var(--text);
+}
+
+.row-line.active .mini-cell {
+  border-color: var(--row-color, var(--accent));
+  background: color-mix(in srgb, var(--row-color, var(--accent)) 22%, transparent);
+  font-weight: 700;
+}
+
+.row-sum-result {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+  font-size: .82rem;
+  color: var(--text);
+  font-family: 'Courier New', monospace;
+}
+
+/* ===================== SYNDROME ===================== */
+.syndrome-box {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+
+.syndrome-label { color: var(--muted); font-size: .9rem; }
+.syndrome-zero { color: var(--accent2); font-weight: 700; }
+.syndrome-nonzero { color: var(--warn); font-weight: 700; }
+
+/* ===================== TABS ===================== */
+.tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+
+.tab {
+  padding: 8px 16px;
+  border-radius: 8px 8px 0 0;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  background: var(--surface2);
+  color: var(--muted);
+  font-size: .88rem;
+  cursor: pointer;
+  transition: all .15s;
+  font-family: inherit;
+}
+
+.tab.active {
+  background: var(--surface);
+  color: var(--accent);
+  border-bottom: 1px solid var(--surface);
+}
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+#intro .tab-content p {
+  color: var(--text);
+}
+
+/* ===================== PROGRESS BAR ===================== */
+.progress-bar {
+  height: 4px;
+  background: var(--surface2);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--purple));
+  transition: width .3s;
+  border-radius: 2px;
+}
+
+/* ===================== BADGE ===================== */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: .75rem;
+  font-weight: 600;
+}
+.badge-blue { background: rgba(88,166,255,.2); color: var(--accent); }
+.badge-green { background: rgba(63,185,80,.2); color: var(--accent2); }
+.badge-purple { background: rgba(188,140,255,.2); color: var(--purple); }
+.badge-yellow { background: rgba(227,179,65,.2); color: var(--yellow); }
+.badge-red { background: rgba(247,129,102,.2); color: var(--warn); }
+
+.sa-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Courier New', monospace;
+  font-size: .84rem;
+}
+
+.sa-table th,
+.sa-table td {
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.sa-table th {
+  background: var(--surface2);
+  color: var(--muted);
+  position: sticky;
+  top: 0;
+}
+
+.sa-leader {
+  color: var(--purple);
+  font-weight: 700;
+}
+
+.sa-codeword {
+  color: var(--accent2);
+}
+
+/* ===================== STEP COUNTER ===================== */
+.step-counter {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: .88rem;
+  color: var(--muted);
+}
+
+.step-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background .25s;
+}
+.step-dot.done { background: var(--accent2); }
+.step-dot.current { background: var(--accent); transform: scale(1.3); }
+
+/* ===================== TOOLTIP ===================== */
+[data-tip] { position: relative; cursor: help; }
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #000;
+  color: #fff;
+  font-size: .78rem;
+  padding: 5px 9px;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s;
+  z-index: 999;
+}
+[data-tip]:hover::after { opacity: 1; }
+
+/* ===================== ANIMATION HIGHLIGHT ===================== */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in { animation: fadeInUp .4s ease both; }
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 4px rgba(88,166,255,.3); }
+  50%       { box-shadow: 0 0 14px rgba(88,166,255,.8); }
+}
+.glow { animation: glow .8s ease infinite; }
+
+/* ===================== MULTIPLY ANIMATION ===================== */
+.multiply-step {
+  font-size: .9rem;
+  color: var(--text);
+  margin: 8px 0;
+  padding: 8px 12px;
+  background: var(--surface2);
+  border-radius: 6px;
+  border-left: 3px solid var(--purple);
+  font-family: 'Courier New', monospace;
+  animation: fadeInUp .3s ease both;
+}
+
+.multiply-step .xor { color: var(--yellow); font-weight: 700; }
+.multiply-step .result-val { color: var(--accent2); font-weight: 700; font-size: 1.05rem; }
+
+/* ===================== RESPONSIVE ===================== */
+@media (max-width: 600px) {
+  .matrix-equation { justify-content: center; }
+  .anim-panel { padding: 18px; }
+  .lang-switcher {
+    position: static;
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+  .theme-switcher {
+    position: static;
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+}
+
+/* ===================== FOOTER ===================== */
+footer {
+  text-align: center;
+  padding: 32px 24px;
+  color: var(--muted);
+  font-size: .85rem;
+  border-top: 1px solid var(--border);
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="theme-switcher">
+    <label for="themeSelect" data-i18n="theme.label">Theme:</label>
+    <select id="themeSelect" onchange="setTheme(this.value)">
+      <option value="dark" data-i18n="theme.dark">Dark</option>
+      <option value="light" data-i18n="theme.light">Light</option>
+    </select>
+  </div>
+  <div class="lang-switcher">
+    <label for="langSelect" data-i18n="lang.label">Language:</label>
+    <select id="langSelect" onchange="setLanguage(this.value)">
+      <option value="en">English</option>
+      <option value="es">Español</option>
+      <option value="gl">Galego</option>
+    </select>
+  </div>
+  <h1 data-i18n="header.title">Channel Coding Demo</h1>
+</header>
+
+<nav id="mainNav">
+  <a href="#intro" class="active" data-i18n="nav.intro">Intro</a>
+  <a href="#generator" data-i18n="nav.generator">Generator Matrix</a>
+  <a href="#parity-check" data-i18n="nav.parity">Parity Check Matrix</a>
+  <a href="#interactive" data-i18n="nav.interactive">Interactive Encoder</a>
+  <a href="#conversion" data-i18n="nav.conversion">G ↔ H Conversion</a>
+  <a href="#playground" data-i18n="nav.playground">Noise Playground</a>
+  <a href="#standard-array" data-i18n="nav.standardArray">Standard array</a>
+</nav>
+
+<main>
+
+<!-- ==================== SECTION 1: INTRO ==================== -->
+<section id="intro">
+  <h2><span class="icon">📡</span> <span data-i18n="s1.title">Linear Block Codes</span></h2>
+
+  <p data-i18n="s1.p1">
+    A <strong>linear block code</strong> takes a message of <em>k</em> bits and encodes it into a codeword of
+    <em>n</em> bits. The extra <em>n − k</em> bits are <strong>redundancy</strong> — carefully chosen so the receiver
+    can detect (and sometimes correct) transmission errors.
+  </p>
+
+  <div class="formula" data-i18n="s1.formula1">
+    (n, k, d)<sub>q</sub> — length n, message k, min-distance d, alphabet size q
+  </div>
+
+  <div class="card-grid">
+    <div class="info-card">
+      <h4 data-i18n="s1.card1t">Code length (n)</h4>
+      <p data-i18n="s1.card1d">Total bits in the transmitted codeword</p>
+    </div>
+    <div class="info-card green">
+      <h4 data-i18n="s1.card2t">Message length (k)</h4>
+      <p data-i18n="s1.card2d">Original information bits before encoding</p>
+    </div>
+    <div class="info-card purple">
+      <h4 data-i18n="s1.card3t">Redundancy (n − k)</h4>
+      <p data-i18n="s1.card3d">Extra bits added for error protection</p>
+    </div>
+    <div class="info-card yellow">
+      <h4 data-i18n="s1.card4t">Rate R = k/n</h4>
+      <p data-i18n="s1.card4d">Fraction of useful info per transmitted bit</p>
+    </div>
+  </div>
+
+  <h3 data-i18n="s1.classic">Two Classic Codes</h3>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('intro','rep')" data-i18n="s1.repTab">Repetition Code</button>
+    <button class="tab" onclick="switchTab('intro','spc')" data-i18n="s1.spcTab">SPC Code</button>
+  </div>
+
+  <div id="intro-rep" class="tab-content active card">
+    <p data-i18n="s1.repText">
+      The <strong>Binary Repetition Code</strong> repeats every message bit <em>n</em> times.
+      To send <code>1</code>, transmit <code>1 1 1 … 1</code>.
+    </p>
+    <div class="formula" data-i18n="s1.repRate">Rate = 1/n &nbsp;|&nbsp; Very robust, very inefficient</div>
+    <div class="input-row" style="margin-top:14px;">
+      <label data-i18n="s1.repN">Repetitions n =</label>
+      <input type="number" id="repN" value="3" min="2" max="7" oninput="updateRepDemo()">
+      <label style="margin-left:10px;" data-i18n="s1.msgBit">Message bit:</label>
+      <button class="btn" onclick="setRepBit(0)">0</button>
+      <button class="btn" onclick="setRepBit(1)">1</button>
+    </div>
+    <div id="repDemo" class="result-box" style="margin-top:10px;"></div>
+  </div>
+
+  <div id="intro-spc" class="tab-content card">
+    <p data-i18n="s1.spcText">
+      The <strong>Single-Parity Check (SPC) Code</strong> appends one extra bit so that
+      the total number of <code>1</code>s in the codeword is <em>even</em>.
+    </p>
+    <div class="formula" data-i18n="s1.spcRate">Rate = (n−1)/n &nbsp;|&nbsp; Efficient, detects 1-bit errors</div>
+    <div class="input-row" style="margin-top:14px;">
+      <label data-i18n="s1.msgBinary">Message (binary):</label>
+      <input type="text" id="spcMsg" value="1011" maxlength="8" oninput="updateSpcDemo()" placeholder="e.g. 1011" data-i18n-placeholder="s1.msgPlaceholder">
+    </div>
+    <div id="spcDemo" class="result-box" style="margin-top:10px;"></div>
+  </div>
+</section>
+
+<!-- ==================== SECTION 2: GENERATOR MATRIX ==================== -->
+<section id="generator">
+  <h2><span class="icon">⚙️</span> <span data-i18n="s2.title">Generator Matrix</span></h2>
+
+  <p data-i18n="s2.p1">
+    Encoding is simply a <strong>matrix multiplication</strong> over binary arithmetic (GF(2)):
+  </p>
+
+  <div class="formula">c = u · G</div>
+
+  <p data-i18n="s2.p2">
+    <strong>u</strong> is the 1×k message row vector, <strong>G</strong> is the k×n generator matrix,
+    and <strong>c</strong> is the 1×n codeword. All arithmetic uses <strong>modulo 2</strong>
+    (addition is XOR, multiplication is AND).
+  </p>
+
+  <h3 data-i18n="s2.animTitle">Animated Matrix Multiplication</h3>
+  <p class="muted" data-i18n="s2.muted1">Watch step-by-step how each bit of c is computed as a dot product of u with a column of G.</p>
+
+  <div class="anim-panel">
+    <!-- Preset selector -->
+    <div class="input-row">
+      <label data-i18n="s2.preset">Preset code:</label>
+      <select id="genPreset" onchange="loadGenPreset()">
+        <option value="spc4">SPC (4,3)</option>
+        <option value="rep3">Repetition (3,1)</option>
+        <option value="hamming74">Hamming (7,4)</option>
+        <option value="custom" data-i18n="common.custom">Custom</option>
+      </select>
+    </div>
+
+    <div id="genCustomInput" style="display:none;">
+      <div class="input-row">
+        <label data-i18n="s2.krows">k (rows):</label>
+        <input type="number" id="genK" value="2" min="1" max="5">
+        <label data-i18n="s2.ncols">n (cols):</label>
+        <input type="number" id="genN" value="4" min="2" max="8">
+        <button class="btn btn-primary" onclick="buildCustomGen()" data-i18n="common.build">Build</button>
+      </div>
+      <div id="genMatrixInput"></div>
+    </div>
+
+    <div id="genAnimArea" style="margin-top:20px;">
+      <div class="matrix-equation" id="genEquation"></div>
+      <div class="anim-step-info" id="genStepInfo" data-i18n-html="msg.startAnim">Press <strong>Start Animation</strong> to begin.</div>
+      <div id="multiplySteps" style="max-height:180px;overflow-y:auto;"></div>
+    </div>
+
+    <div class="anim-controls">
+      <button class="btn btn-primary" id="btnGenStart" onclick="startGenAnim()" data-i18n="btn.startAnim">▶ Start Animation</button>
+      <button class="btn" id="btnGenNext" onclick="nextGenStep()" disabled data-i18n="btn.next">Next Step →</button>
+      <button class="btn" id="btnGenAuto" onclick="autoGenAnim()" disabled data-i18n="btn.auto">⚡ Auto Play</button>
+      <button class="btn" onclick="resetGenAnim()" data-i18n="btn.reset">↺ Reset</button>
+    </div>
+
+    <div style="margin-top:12px;">
+      <div class="step-counter" id="genStepCounter"></div>
+    </div>
+  </div>
+
+  <h3 data-i18n="s2.why">Why Systematic Form?</h3>
+  <p data-i18n="s2.systematicText">
+    When the first k×k block of G is an <strong>identity matrix</strong>, G is called <em>systematic</em>.
+    The first k bits of the codeword c are then identical to the message u — easy to decode!
+  </p>
+
+  <div class="formula">G<sub>systematic</sub> = [ I<sub>k</sub> | P ]</div>
+
+  <div class="card">
+    <p class="muted" data-i18n="s2.example">Example: SPC (4,3) systematic generator matrix</p>
+    <div id="spcGDisplay"></div>
+  </div>
+</section>
+
+<!-- ==================== SECTION 3: PARITY CHECK MATRIX ==================== -->
+<section id="parity-check">
+  <h2><span class="icon">🔍</span> <span data-i18n="s3.title">Parity Check Matrix</span></h2>
+
+  <p data-i18n="s3.p1">
+    The <strong>parity-check matrix H</strong> has size (n−k)×n and satisfies a key property:
+    for every valid codeword c,
+  </p>
+
+  <div class="formula">c · Hᵀ = 0</div>
+
+  <p data-i18n="s3.p2">
+    If a received word <strong>r</strong> has been corrupted, then r · Hᵀ = <strong>s ≠ 0</strong>.
+    This non-zero vector <strong>s</strong> is called the <strong>syndrome</strong>.
+  </p>
+
+  <div class="card-grid">
+    <div class="info-card green">
+      <h4 data-i18n="s3.card1t">s = 0 (zero syndrome)</h4>
+      <p data-i18n="s3.card1d">Word belongs to the valid codeword set → no detected error</p>
+    </div>
+    <div class="info-card warn">
+      <h4 data-i18n="s3.card2t">s ≠ 0 (non-zero syndrome)</h4>
+      <p data-i18n="s3.card2d">Word was corrupted — an error was introduced in the channel</p>
+    </div>
+  </div>
+
+  <h3 data-i18n="s3.animTitle">Animated Syndrome Check</h3>
+  <p class="muted" data-i18n="s3.muted1">See how H multiplied by a valid or corrupted codeword gives zero or a non-zero syndrome.</p>
+
+  <div class="anim-panel">
+    <div class="input-row">
+      <label data-i18n="common.preset">Preset:</label>
+      <select id="hPreset" onchange="loadHPreset()">
+        <option value="spc4">SPC (4,3)</option>
+        <option value="rep3">Repetition (3,1)</option>
+        <option value="hamming74">Hamming (7,4)</option>
+      </select>
+    </div>
+
+    <div id="hAnimArea" style="margin-top:16px;">
+      <div class="matrix-equation" id="hEquation"></div>
+    </div>
+
+    <div class="input-row" style="margin-top:16px;">
+      <label data-i18n="s3.received">Received word r:</label>
+      <input type="text" id="hReceived" value="" placeholder="binary string" maxlength="10" data-i18n-placeholder="s3.binaryPlaceholder">
+      <button class="btn btn-primary" onclick="checkSyndrome()" data-i18n="s3.compute">Compute Syndrome</button>
+      <button class="btn" onclick="injectError()" data-i18n="s3.inject">⚡ Inject Error</button>
+    </div>
+
+    <div class="anim-step-info" id="hStepInfo" data-i18n-html="msg.computeSyndrome">Enter a received word and press <strong>Compute Syndrome</strong>.</div>
+    <div id="syndromeResult"></div>
+    <div id="hMultiplySteps" style="max-height:180px;overflow-y:auto;margin-top:8px;"></div>
+
+    <div class="anim-controls">
+      <button class="btn btn-primary" id="btnHStart" onclick="startHAnim()" data-i18n="s3.animate">▶ Animate Check</button>
+      <button class="btn" id="btnHNext" onclick="nextHStep()" disabled data-i18n="btn.next">Next Step →</button>
+      <button class="btn" id="btnHAuto" onclick="autoHAnim()" disabled data-i18n="btn.auto">⚡ Auto Play</button>
+      <button class="btn" onclick="resetHAnim()" data-i18n="btn.reset">↺ Reset</button>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== SECTION 4: INTERACTIVE ENCODER ==================== -->
+<section id="interactive">
+  <h2><span class="icon">🛠️</span> <span data-i18n="s4.title">Interactive Encoder</span></h2>
+
+  <p data-i18n="s4.p1">
+    Build your own code by defining how each <strong>parity bit</strong> is computed from the message bits.
+    The app will construct the generator matrix G automatically.
+  </p>
+
+  <div class="card">
+    <h3 style="margin-top:0;" data-i18n="s4.step1">Step 1 — Choose message length k</h3>
+    <div class="input-row">
+      <label data-i18n="s4.kbits">k (message bits):</label>
+      <input type="number" id="iK" value="3" min="1" max="5" oninput="buildParityEditor()">
+      <label style="margin-left:10px;" data-i18n="s4.parityCount">Number of parity bits (n−k):</label>
+      <input type="number" id="iParity" value="1" min="1" max="4" oninput="buildParityEditor()">
+    </div>
+
+    <h3 data-i18n="s4.step2">Step 2 — Define each parity bit</h3>
+    <p class="muted" data-i18n="s4.step2d">Each parity bit pᵢ = XOR of the selected message bits (even-parity rule)</p>
+    <div id="parityEditor" class="parity-grid"></div>
+
+    <h3 data-i18n="s4.step3">Step 3 — Resulting Generator Matrix G</h3>
+    <div id="iGenMatrix"></div>
+
+    <h3 data-i18n="s4.step4">Step 4 — Encode a message</h3>
+    <div class="input-row">
+      <label data-i18n="s4.msgu">Message u (binary, length k):</label>
+      <input type="text" id="iMessage" placeholder="e.g. 101" oninput="encodeMessage()" data-i18n-placeholder="s1.msgPlaceholder">
+      <button class="btn btn-success" onclick="encodeMessage()" data-i18n="s6.encode">Encode</button>
+    </div>
+    <div id="iEncodeResult"></div>
+  </div>
+</section>
+
+<!-- ==================== SECTION 5: G <-> H CONVERSION ==================== -->
+<section id="conversion">
+  <h2><span class="icon">🔄</span> <span data-i18n="s5.title">G ↔ H Conversion</span></h2>
+
+  <p data-i18n="s5.p1">
+    For binary codes (q=2), once G is in <strong>systematic form</strong> <code>[I<sub>k</sub> | P]</code>,
+    the parity-check matrix H is simply:
+  </p>
+
+  <div class="formula">H = [ Pᵀ | I<sub>n−k</sub> ]</div>
+
+  <p data-i18n="s5.p2">
+    This works because multiplying H by any valid codeword cᵀ = [u, uP]ᵀ gives
+    Pᵀuᵀ + uPᵀ = 0 over GF(2).
+  </p>
+
+  <div class="anim-panel">
+    <div class="input-row">
+      <label data-i18n="s5.select">Select example:</label>
+      <select id="convPreset" onchange="loadConvPreset()">
+        <option value="spc4">SPC (4,3)</option>
+        <option value="hamming74">Hamming (7,4)</option>
+        <option value="custom" data-i18n="s5.fromInteractive">From Interactive Encoder</option>
+      </select>
+    </div>
+
+    <div id="convDisplay" style="margin-top:16px;"></div>
+    <div class="anim-step-info" id="convInfo" style="margin-top:12px;"></div>
+
+    <div class="anim-controls" style="margin-top:14px;">
+      <button class="btn btn-primary" onclick="animateConversion()" data-i18n="s5.animate">▶ Animate G→H Conversion</button>
+      <button class="btn" onclick="resetConv()" data-i18n="btn.reset">↺ Reset</button>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== SECTION 6: NOISE PLAYGROUND ==================== -->
+<section id="playground">
+  <h2><span class="icon">🌪️</span> <span data-i18n="s6.title">Noise Playground</span></h2>
+
+  <p data-i18n="s6.p1">
+    Simulate a noisy channel. Encode a message, flip bits, and watch the syndrome reveal the error.
+  </p>
+
+  <div class="card">
+    <div class="input-row">
+      <label data-i18n="s6.codePreset">Code preset:</label>
+      <select id="pgPreset" onchange="loadPgPreset()">
+        <option value="spc4">SPC (4,3)</option>
+        <option value="rep3">Repetition (3,1)</option>
+        <option value="hamming74">Hamming (7,4)</option>
+      </select>
+      <label style="margin-left:14px;" data-i18n="s6.messageu">Message u:</label>
+      <input type="text" id="pgMessage" value="101" maxlength="7" oninput="pgEncode()">
+      <button class="btn btn-success" onclick="pgEncode()" data-i18n="s6.encode">Encode</button>
+    </div>
+
+    <div id="pgDistanceInfo" class="result-box" style="margin-top:14px;"></div>
+
+    <div id="pgCodeword" class="result-box" style="margin-top:14px;"></div>
+
+    <h3 data-i18n="s6.clickFlip">Click bits to flip them (simulate noise)</h3>
+    <div id="pgNoisyRow" class="bit-row" style="margin:12px 0; flex-wrap:wrap; gap:8px;"></div>
+
+    <div class="anim-controls" style="margin-top:8px;">
+      <button class="btn" onclick="pgRandomError()" data-i18n="s6.random">⚡ Random Error</button>
+      <button class="btn" onclick="pgClearErrors()" data-i18n="s6.clear">✓ Clear Errors</button>
+      <button class="btn btn-primary" onclick="pgCheckSyndrome()" data-i18n="s3.compute">Compute Syndrome</button>
+    </div>
+
+    <div id="pgSyndromeDisplay" style="margin-top:16px;"></div>
+  </div>
+</section>
+
+<!-- ==================== SECTION 7: STANDARD ARRAY ==================== -->
+<section id="standard-array">
+  <h2><span class="icon">🧩</span> <span data-i18n="s7.title">Standard array</span></h2>
+
+  <p data-i18n="s7.p1">
+    The standard array groups all length-n binary vectors into cosets of the code. The first row contains all valid codewords, and each next row is built by adding a coset leader.
+  </p>
+
+  <div class="card">
+    <div class="input-row">
+      <label data-i18n="s7.codePreset">Code preset:</label>
+      <select id="saPreset" onchange="loadSAPreset()">
+        <option value="spc4">SPC (4,3)</option>
+        <option value="rep3">Repetition (3,1)</option>
+        <option value="hamming74">Hamming (7,4)</option>
+      </select>
+      <button class="btn btn-primary" onclick="renderStandardArray()" data-i18n="s7.build">Build standard array</button>
+    </div>
+
+    <div id="saInfo" class="result-box" style="margin-top:14px;"></div>
+    <div id="saTableWrap" style="margin-top:14px; overflow-x:auto;"></div>
+  </div>
+</section>
+
+</main>
+
+<script>
+// ============================================================
+//  UTILITIES
+// ============================================================
+const $ = id => document.getElementById(id);
+
+const I18N = {
+  en: {
+    'lang.label': 'Language:',
+    'theme.label': 'Theme:',
+    'theme.dark': 'Dark',
+    'theme.light': 'Light',
+    'header.title': 'Channel Coding Demo',
+    'nav.intro': 'Intro',
+    'nav.generator': 'Generator Matrix',
+    'nav.parity': 'Parity Check Matrix',
+    'nav.interactive': 'Interactive Encoder',
+    'nav.conversion': 'G ↔ H Conversion',
+    'nav.playground': 'Noise Playground',
+    'nav.standardArray': 'Standard array',
+    's1.title': 'Linear Block Codes',
+    's1.classic': 'Two Classic Codes',
+    's1.repTab': 'Repetition Code',
+    's1.spcTab': 'SPC Code',
+    's2.title': 'Generator Matrix',
+    's2.animTitle': 'Animated Matrix Multiplication',
+    's2.preset': 'Preset code:',
+    's3.title': 'Parity Check Matrix',
+    's3.animTitle': 'Animated Syndrome Check',
+    'common.preset': 'Preset:',
+    'common.custom': 'Custom',
+    's3.received': 'Received word r:',
+    's3.compute': 'Compute Syndrome',
+    's3.inject': '⚡ Inject Error',
+    's3.animate': '▶ Animate Check',
+    's4.title': 'Interactive Encoder',
+    's5.title': 'G ↔ H Conversion',
+    's5.select': 'Select example:',
+    's5.fromInteractive': 'From Interactive Encoder',
+    's5.animate': '▶ Animate G→H Conversion',
+    's6.title': 'Noise Playground',
+    's7.title': 'Standard array',
+    's7.p1': 'The standard array groups all length-n binary vectors into cosets of the code. The first row contains all valid codewords, and each next row is built by adding a coset leader.',
+    's7.codePreset': 'Code preset:',
+    's7.build': 'Build standard array',
+    's7.info': 'n={n}, k={k}, number of codewords=2^k={cw}, number of cosets=2^(n-k)={cs}',
+    's7.colLeader': 'Coset leader',
+    's7.colWords': 'Coset words (leader + codeword)',
+    's7.colSyndrome': 'Syndrome',
+    's6.codePreset': 'Code preset:',
+    's6.encode': 'Encode',
+    's6.clickFlip': 'Click bits to flip them (simulate noise)',
+    's6.random': '⚡ Random Error',
+    's6.clear': '✓ Clear Errors',
+    'btn.startAnim': '▶ Start Animation',
+    'btn.next': 'Next Step →',
+    'btn.auto': '⚡ Auto Play',
+    'btn.reset': '↺ Reset',
+    'msg.startAnim': 'Press <strong>Start Animation</strong> to begin.',
+    'msg.computeSyndrome': 'Enter a received word and press <strong>Compute Syndrome</strong>.',
+    'msg.ready': '<strong>Ready!</strong>',
+    'word.step': 'Step',
+    'word.done': 'Done',
+    'word.validCodeword': 'Valid codeword',
+    'word.errorDetected': 'Error detected',
+    'word.enterBits': 'Enter exactly {n} bits.',
+    'word.enterBitsMultiple': 'Enter a number of bits that is a multiple of {n}.',
+    'word.noError': 'No error detected',
+    'word.customFirst': 'No custom code defined yet — go to Section 4 first.'
+    ,
+    's1.p1': 'A linear block code takes a message of k bits and encodes it into a codeword of n bits. The extra n − k bits are redundancy — carefully chosen so the receiver can detect (and sometimes correct) transmission errors.',
+    's1.formula1': '(n, k, d)_q — length n, message k, min-distance d, alphabet size q',
+    's1.card1t': 'Code length (n)',
+    's1.card1d': 'Total bits in the transmitted codeword',
+    's1.card2t': 'Message length (k)',
+    's1.card2d': 'Original information bits before encoding',
+    's1.card3t': 'Redundancy (n − k)',
+    's1.card3d': 'Extra bits added for error protection',
+    's1.card4t': 'Rate R = k/n',
+    's1.card4d': 'Fraction of useful info per transmitted bit',
+    's1.repText': 'The Binary Repetition Code repeats every message bit n times. To send 1, transmit 1 1 1 ... 1.',
+    's1.repRate': 'Rate = 1/n | Very robust, very inefficient',
+    's1.repN': 'Repetitions n =',
+    's1.msgBit': 'Message bit:',
+    's1.spcText': 'The Single-Parity Check (SPC) Code appends one extra bit so that the total number of 1s in the codeword is even.',
+    's1.spcRate': 'Rate = (n−1)/n | Efficient, detects 1-bit errors',
+    's1.msgBinary': 'Message (binary):',
+    's1.msgPlaceholder': 'e.g. 101',
+    's1.repDemoTitle': 'Repetition code ({n},1): message bit = {bit}',
+    's1.spcDemoTitle': 'SPC ({n},{k}): codeword',
+    's1.xorAll': 'XOR of all bits',
+    's1.mustBe0': 'must be 0',
+    's1.rate': 'Rate',
+    's2.p1': 'Encoding is simply a matrix multiplication over binary arithmetic (GF(2)):',
+    's2.p2': 'u is the 1×k message row vector, G is the k×n generator matrix, and c is the 1×n codeword. All arithmetic uses modulo 2 (addition is XOR, multiplication is AND).',
+    's2.muted1': 'Watch step-by-step how each bit of c is computed as a dot product of u with a column of G.',
+    's2.krows': 'k (rows):',
+    's2.ncols': 'n (cols):',
+    's2.why': 'Why Systematic Form?',
+    's2.systematicText': 'When the first k×k block of G is an identity matrix, G is called systematic. The first k bits of c are identical to u.',
+    's2.example': 'Example: SPC (4,3) systematic generator matrix',
+    's2.enterG': 'Enter G row by row (space-separated binary):',
+    's2.row': 'Row',
+    's2.needValues': 'Row {row}: need {n} values',
+    's2.msgNeeds': 'Message needs {k} bits',
+    's2.loadPresetFirst': 'Load a preset first',
+    's2.computingc': 'Computing c = u · G — click Next Step to compute each output bit.',
+    's2.column': 'column',
+    's2.ofG': 'of G',
+    's2.systematicBadge': 'Systematic',
+    's2.systematicNote': 'First 3×3 block = Identity. The last column computes the parity bit.',
+    's3.p1': 'The parity-check matrix H has size (n−k)×n and satisfies a key property: for every valid codeword c,',
+    's3.p2': 'If a received word r has been corrupted, then r · Hᵀ = s ≠ 0. This non-zero vector s is called the syndrome.',
+    's3.card1t': 's = 0 (zero syndrome)',
+    's3.card1d': 'Word belongs to the valid codeword set -> no detected error',
+    's3.card2t': 's ≠ 0 (non-zero syndrome)',
+    's3.card2d': 'Word was corrupted — an error was introduced in the channel',
+    's3.muted1': 'See how H multiplied by a valid or corrupted codeword gives zero or a non-zero syndrome.',
+    's3.binaryPlaceholder': 'binary string',
+    's3.expectedBits': 'Expected {n} bits, got {got}',
+    's3.readyCompute': 'Ready. Press <strong>Animate Check</strong> or <strong>Compute Syndrome</strong>.',
+    's3.syndrome': 'Syndrome',
+    's3.flippedPos': 'Flipped bit at position {pos}.',
+    's3.nowCompute': 'Now press <strong>Compute Syndrome</strong>.',
+    's3.expectedN': 'Expected {n} bits',
+    's3.computingS': 'Computing s = r · Hᵀ — each step computes one syndrome bit.',
+    's4.p1': 'Build your own code by defining how each parity bit is computed from the message bits. The app will construct G automatically.',
+    's4.step1': 'Step 1 — Choose message length k',
+    's4.kbits': 'k (message bits):',
+    's4.parityCount': 'Number of parity bits (n−k):',
+    's4.step2': 'Step 2 — Define each parity bit',
+    's4.step2d': 'Each parity bit p_i = XOR of the selected message bits (even-parity rule)',
+    's4.step3': 'Step 3 — Resulting Generator Matrix G',
+    's4.step4': 'Step 4 — Encode a message',
+    's4.msgu': 'Message u (binary, length multiple of k):',
+    's4.block': 'Block',
+    's4.encodedBlocks': 'Encoded blocks',
+    's4.totalCodeStream': 'Total encoded stream',
+    's4.rowSumTitle': 'Row-sum view (u × G)',
+    's4.rowSumDesc': 'Rows where u_i = 1 are selected and XOR-summed to produce c.',
+    's4.selected': 'selected',
+    's4.notSelected': 'not selected',
+    's4.parityBit': 'Parity bit',
+    's4.xorSelected': 'XOR of selected message bits:',
+    's4.columns': 'Columns',
+    's4.encodedCodeword': 'Encoded codeword',
+    's4.noBitsSelected': '0 (no bits selected)',
+    's5.p1': 'For binary codes (q=2), once G is in systematic form [I_k | P], the parity-check matrix H is simply:',
+    's5.p2': 'This works because multiplying H by any valid codeword cᵀ = [u, uP]ᵀ gives Pᵀuᵀ + uPᵀ = 0 over GF(2).',
+    's5.pressAnimate': 'Press <strong>Animate G→H Conversion</strong> to see the steps.',
+    's5.gSystematic': 'G (systematic)',
+    's5.pExtracted': 'P (extracted)',
+    's5.ptTransposed': 'Pᵀ (transposed)',
+    's5.step1': '<strong>Step 1:</strong> Identify the <span style="color:var(--accent)">Identity block I<sub>k</sub></span> (first k columns of G)',
+    's5.step2': '<strong>Step 2:</strong> Extract the <span style="color:var(--purple)">P matrix</span> (remaining n−k columns of G)',
+    's5.step3': '<strong>Step 3:</strong> Compute <strong>Pᵀ</strong> (transpose of P)',
+    's5.step4': '<strong>Step 4:</strong> Assemble H = [Pᵀ | I<sub>n−k</sub>]',
+    's6.p1': 'Simulate a noisy channel. Encode a message, flip bits, and watch the syndrome reveal the error.',
+    's6.messageu': 'Message u:',
+    's6.clickFlipBit': 'Click to flip bit {n}',
+    's6.syndromeCheck': 'Syndrome check',
+    's6.evenWarning': 'Warning: even number of errors can go undetected!',
+    's6.transmissionError': 'Transmission error detected!',
+    's6.flippedBits': 'Flipped bit(s): position {pos}',
+    's6.upTo': 'up to',
+    's6.bitErrors': 'bit error(s)',
+    's6.dminTitle': 'd_min and error capability',
+    's6.forCode': 'For {code}',
+    's6.correctionCap': 'Correction capability',
+    's6.detectionCap': 'Detection capability',
+    's6.statusNoError': 'No channel error',
+    's6.statusNoErrorText': 'No correction needed.',
+    's6.statusCorrectable': 'Correctable',
+    's6.statusCorrectableText': 'Error weight w={w} <= t={t}. In principle, this is within correction capability.',
+    's6.statusDetectableOnly': 'Detectable only',
+    's6.statusDetectableOnlyText': 'Error weight w={w} is > t={t} and <= d_min-1={d}. Detectable, but not guaranteed correctable.',
+    's6.statusBeyond': 'Beyond guaranteed detection',
+    's6.statusBeyondText': 'Error weight w={w} > d_min-1={d}. Detection is not guaranteed.',
+    'common.build': 'Build',
+    'common.apply': 'Apply',
+    'label.umessage': 'u (message)',
+    'label.ggenerator': 'G (generator)',
+    'label.ccodeword': 'c (codeword)',
+    'label.codeword': 'Codeword',
+    'label.hparity': 'H (parity-check)',
+    'label.rreceived': 'r (received)',
+    'label.ssyndrome': 's (syndrome)',
+    'word.code': 'code'
+  },
+  es: {
+    'lang.label': 'Idioma:',
+    'theme.label': 'Tema:',
+    'theme.dark': 'Oscuro',
+    'theme.light': 'Claro',
+    'header.title': 'Demo de codificación de canal',
+    'nav.intro': 'Introduccion',
+    'nav.generator': 'Matriz generadora',
+    'nav.parity': 'Matriz de paridad',
+    'nav.interactive': 'Codificador interactivo',
+    'nav.conversion': 'Conversion G ↔ H',
+    'nav.playground': 'Laboratorio de ruido',
+    'nav.standardArray': 'Standard array',
+    's1.title': 'Codigos de bloques lineales',
+    's1.classic': 'Dos codigos clasicos',
+    's1.repTab': 'Codigo de repeticion',
+    's1.spcTab': 'Codigo SPC',
+    's2.title': 'Matriz generadora',
+    's2.animTitle': 'Multiplicacion de matrices animada',
+    's2.preset': 'Codigo predefinido:',
+    's3.title': 'Matriz de comprobacion de paridad',
+    's3.animTitle': 'Comprobacion de sindrome animada',
+    'common.preset': 'Predefinido:',
+    'common.custom': 'Personalizado',
+    's3.received': 'Palabra recibida r:',
+    's3.compute': 'Calcular sindrome',
+    's3.inject': '⚡ Inyectar error',
+    's3.animate': '▶ Animar comprobacion',
+    's4.title': 'Codificador interactivo',
+    's5.title': 'Conversion G ↔ H',
+    's5.select': 'Seleccionar ejemplo:',
+    's5.fromInteractive': 'Desde el codificador interactivo',
+    's5.animate': '▶ Animar Conversion G→H',
+    's6.title': 'Laboratorio de ruido',
+    's7.title': 'Standard array',
+    's7.p1': 'El arreglo estandar agrupa todos los vectores binarios de longitud n en clases laterales del codigo. La primera fila contiene las palabras validas del codigo y cada fila siguiente se construye sumando un lider de coset.',
+    's7.codePreset': 'Codigo predefinido:',
+    's7.build': 'Construir standard array',
+    's7.info': 'n={n}, k={k}, numero de palabras codigo=2^k={cw}, numero de cosets=2^(n-k)={cs}',
+    's7.colLeader': 'Lider de coset',
+    's7.colWords': 'Palabras del coset (lider + palabra codigo)',
+    's7.colSyndrome': 'Sindrome',
+    's6.codePreset': 'Codigo predefinido:',
+    's6.encode': 'Codificar',
+    's6.clickFlip': 'Haz clic en bits para invertirlos (simular ruido)',
+    's6.random': '⚡ Error aleatorio',
+    's6.clear': '✓ Limpiar errores',
+    'btn.startAnim': '▶ Iniciar animacion',
+    'btn.next': 'Siguiente paso →',
+    'btn.auto': '⚡ Reproduccion automatica',
+    'btn.reset': '↺ Reiniciar',
+    'msg.startAnim': 'Pulsa <strong>Iniciar animacion</strong> para comenzar.',
+    'msg.computeSyndrome': 'Introduce una palabra recibida y pulsa <strong>Calcular sindrome</strong>.',
+    'msg.ready': '<strong>Listo!</strong>',
+    'word.step': 'Paso',
+    'word.done': 'Hecho',
+    'word.validCodeword': 'Palabra valida',
+    'word.errorDetected': 'Error detectado',
+    'word.enterBits': 'Introduce exactamente {n} bits.',
+    'word.enterBitsMultiple': 'Introduce una cantidad de bits multiplo de {n}.',
+    'word.noError': 'Sin error detectado',
+    'word.customFirst': 'No hay codigo personalizado definido — ve primero a la Seccion 4.',
+    's1.p1': 'Un codigo de bloques lineal toma un mensaje de k bits y lo codifica en una palabra de n bits. Los n − k bits extra son redundancia.',
+    's1.formula1': '(n, k, d)_q — longitud n, mensaje k, distancia minima d, tamano de alfabeto q',
+    's1.card1t': 'Longitud del codigo (n)',
+    's1.card1d': 'Bits totales de la palabra transmitida',
+    's1.card2t': 'Longitud del mensaje (k)',
+    's1.card2d': 'Bits de informacion antes de codificar',
+    's1.card3t': 'Redundancia (n − k)',
+    's1.card3d': 'Bits extra para proteger contra errores',
+    's1.card4t': 'Tasa R = k/n',
+    's1.card4d': 'Fraccion de informacion util por bit transmitido',
+    's1.repText': 'El Codigo de Repeticion Binario repite cada bit del mensaje n veces.',
+    's1.repRate': 'Tasa = 1/n | Muy robusto, muy ineficiente',
+    's1.repN': 'Repeticiones n =',
+    's1.msgBit': 'Bit del mensaje:',
+    's1.spcText': 'El Codigo de Paridad Simple (SPC) anade un bit para que el numero total de 1s sea par.',
+    's1.spcRate': 'Tasa = (n−1)/n | Eficiente, detecta errores de 1 bit',
+    's1.msgBinary': 'Mensaje (binario):',
+    's1.msgPlaceholder': 'ej. 101',
+    's1.repDemoTitle': 'Codigo de repeticion ({n},1): bit del mensaje = {bit}',
+    's1.spcDemoTitle': 'SPC ({n},{k}): palabra codificada',
+    's1.xorAll': 'XOR de todos los bits',
+    's1.mustBe0': 'debe ser 0',
+    's1.rate': 'Tasa',
+    's2.p1': 'La codificacion es una multiplicacion matricial sobre aritmetica binaria (GF(2)).',
+    's2.p2': 'u es el vector fila 1×k del mensaje, G es la matriz generadora k×n y c es la palabra 1×n.',
+    's2.muted1': 'Mira paso a paso como se calcula cada bit de c.',
+    's2.krows': 'k (filas):',
+    's2.ncols': 'n (columnas):',
+    's2.why': 'Por que forma sistematica?',
+    's2.systematicText': 'Si el primer bloque k×k de G es identidad, G es sistematica.',
+    's2.example': 'Ejemplo: matriz generadora sistematica SPC (4,3)',
+    's2.enterG': 'Introduce G fila por fila (binario separado por espacios):',
+    's2.row': 'Fila',
+    's2.needValues': 'Fila {row}: se necesitan {n} valores',
+    's2.msgNeeds': 'El mensaje necesita {k} bits',
+    's2.loadPresetFirst': 'Carga primero un predefinido',
+    's2.computingc': 'Calculando c = u · G — pulsa Siguiente paso para cada bit.',
+    's2.column': 'columna',
+    's2.ofG': 'de G',
+    's2.systematicBadge': 'Sistematica',
+    's2.systematicNote': 'Primer bloque 3×3 = Identidad. La ultima columna calcula paridad.',
+    's3.p1': 'La matriz de comprobacion H tiene tamano (n−k)×n y cumple una propiedad clave.',
+    's3.p2': 'Si una palabra recibida r tiene ruido, r · Hᵀ = s ≠ 0. s es el sindrome.',
+    's3.card1t': 's = 0 (sindrome cero)',
+    's3.card1d': 'Palabra valida -> no se detecta error',
+    's3.card2t': 's ≠ 0 (sindrome no cero)',
+    's3.card2d': 'La palabra fue corrompida en el canal',
+    's3.muted1': 'Observa como H por la palabra recibida da sindrome cero o no cero.',
+    's3.binaryPlaceholder': 'cadena binaria',
+    's3.expectedBits': 'Se esperaban {n} bits, se recibieron {got}',
+    's3.readyCompute': 'Listo. Pulsa <strong>Animar comprobacion</strong> o <strong>Calcular sindrome</strong>.',
+    's3.syndrome': 'Sindrome',
+    's3.flippedPos': 'Bit invertido en la posicion {pos}.',
+    's3.nowCompute': 'Ahora pulsa <strong>Calcular sindrome</strong>.',
+    's3.expectedN': 'Se esperaban {n} bits',
+    's3.computingS': 'Calculando s = r · Hᵀ — cada paso calcula un bit del sindrome.',
+    's4.p1': 'Construye tu codigo definiendo como se calcula cada bit de paridad.',
+    's4.step1': 'Paso 1 — Elegir longitud del mensaje k',
+    's4.kbits': 'k (bits de mensaje):',
+    's4.parityCount': 'Numero de bits de paridad (n−k):',
+    's4.step2': 'Paso 2 — Definir cada bit de paridad',
+    's4.step2d': 'Cada bit de paridad p_i = XOR de bits seleccionados',
+    's4.step3': 'Paso 3 — Matriz generadora G resultante',
+    's4.step4': 'Paso 4 — Codificar un mensaje',
+    's4.msgu': 'Mensaje u (binario, longitud multiplo de k):',
+    's4.block': 'Bloque',
+    's4.encodedBlocks': 'Bloques codificados',
+    's4.totalCodeStream': 'Flujo codificado total',
+    's4.rowSumTitle': 'Vista por suma de filas (u × G)',
+    's4.rowSumDesc': 'Se seleccionan las filas donde u_i = 1 y se suman con XOR para obtener c.',
+    's4.selected': 'seleccionada',
+    's4.notSelected': 'no seleccionada',
+    's4.parityBit': 'Bit de paridad',
+    's4.xorSelected': 'XOR de bits seleccionados:',
+    's4.columns': 'Columnas',
+    's4.encodedCodeword': 'Palabra codificada',
+    's4.noBitsSelected': '0 (sin bits seleccionados)',
+    's5.p1': 'Para codigos binarios (q=2), si G esta en forma sistematica [I_k | P], entonces H es:',
+    's5.p2': 'Esto funciona porque H por una palabra valida da 0 en GF(2).',
+    's5.pressAnimate': 'Pulsa <strong>Animar conversion G→H</strong> para ver los pasos.',
+    's5.gSystematic': 'G (sistematica)',
+    's5.pExtracted': 'P (extraida)',
+    's5.ptTransposed': 'Pᵀ (transpuesta)',
+    's5.step1': '<strong>Paso 1:</strong> Identificar el bloque identidad I<sub>k</sub>',
+    's5.step2': '<strong>Paso 2:</strong> Extraer la matriz P',
+    's5.step3': '<strong>Paso 3:</strong> Calcular Pᵀ',
+    's5.step4': '<strong>Paso 4:</strong> Construir H = [Pᵀ | I<sub>n−k</sub>]',
+    's6.p1': 'Simula un canal ruidoso. Codifica un mensaje, invierte bits y revisa el sindrome.',
+    's6.messageu': 'Mensaje u:',
+    's6.clickFlipBit': 'Haz clic para invertir el bit {n}',
+    's6.syndromeCheck': 'Comprobacion de sindrome',
+    's6.evenWarning': 'Aviso: un numero par de errores puede pasar desapercibido',
+    's6.transmissionError': 'Error de transmision detectado!',
+    's6.flippedBits': 'Bit(s) invertido(s): posicion {pos}',
+    's6.upTo': 'hasta',
+    's6.bitErrors': 'error(es) de bit',
+    's6.dminTitle': 'd_min y capacidad ante errores',
+    's6.forCode': 'Para {code}',
+    's6.correctionCap': 'Capacidad de correccion',
+    's6.detectionCap': 'Capacidad de deteccion',
+    's6.statusNoError': 'Sin error de canal',
+    's6.statusNoErrorText': 'No hace falta correccion.',
+    's6.statusCorrectable': 'Corregible',
+    's6.statusCorrectableText': 'Peso de error w={w} <= t={t}. En principio, esta dentro de la capacidad de correccion.',
+    's6.statusDetectableOnly': 'Solo detectable',
+    's6.statusDetectableOnlyText': 'Peso de error w={w} > t={t} y <= d_min-1={d}. Es detectable, pero no corregible de forma garantizada.',
+    's6.statusBeyond': 'Fuera de deteccion garantizada',
+    's6.statusBeyondText': 'Peso de error w={w} > d_min-1={d}. La deteccion no esta garantizada.',
+    'common.build': 'Construir',
+    'common.apply': 'Aplicar',
+    'label.umessage': 'u (mensaje)',
+    'label.ggenerator': 'G (generadora)',
+    'label.ccodeword': 'c (palabra)',
+    'label.codeword': 'Palabra',
+    'label.hparity': 'H (paridad)',
+    'label.rreceived': 'r (recibida)',
+    'label.ssyndrome': 's (sindrome)',
+    'word.code': 'codigo'
+  },
+  gl: {
+    'lang.label': 'Lingua:',
+    'theme.label': 'Tema:',
+    'theme.dark': 'Escuro',
+    'theme.light': 'Claro',
+    'header.title': 'Demostración de codificación de canle',
+    'nav.intro': 'Introducion',
+    'nav.generator': 'Matriz xeradora',
+    'nav.parity': 'Matriz de paridade',
+    'nav.interactive': 'Codificador interactivo',
+    'nav.conversion': 'Conversion G ↔ H',
+    'nav.playground': 'Laboratorio de ruido',
+    'nav.standardArray': 'Standard array',
+    's1.title': 'Codigos de bloques lineais',
+    's1.classic': 'Dous codigos clasicos',
+    's1.repTab': 'Codigo de repeticion',
+    's1.spcTab': 'Codigo SPC',
+    's2.title': 'Matriz xeradora',
+    's2.animTitle': 'Multiplicacion de matrices animada',
+    's2.preset': 'Codigo predefinido:',
+    's3.title': 'Matriz de comprobacion de paridade',
+    's3.animTitle': 'Comprobacion de sindrome animada',
+    'common.preset': 'Predefinido:',
+    'common.custom': 'Personalizado',
+    's3.received': 'Palabra recibida r:',
+    's3.compute': 'Calcular sindrome',
+    's3.inject': '⚡ Inxectar erro',
+    's3.animate': '▶ Animar comprobacion',
+    's4.title': 'Codificador interactivo',
+    's5.title': 'Conversion G ↔ H',
+    's5.select': 'Seleccionar exemplo:',
+    's5.fromInteractive': 'Desde o codificador interactivo',
+    's5.animate': '▶ Animar Conversion G→H',
+    's6.title': 'Laboratorio de ruido',
+    's7.title': 'Standard array',
+    's7.p1': 'O arranxo estandar agrupa todos os vectores binarios de lonxitude n en clases laterais do codigo. A primeira fila contén as palabras validas do codigo e cada fila seguinte constrúese sumando un lider de coset.',
+    's7.codePreset': 'Codigo predefinido:',
+    's7.build': 'Construir standard array',
+    's7.info': 'n={n}, k={k}, numero de palabras codigo=2^k={cw}, numero de cosets=2^(n-k)={cs}',
+    's7.colLeader': 'Lider de coset',
+    's7.colWords': 'Palabras do coset (lider + palabra codigo)',
+    's7.colSyndrome': 'Sindrome',
+    's6.codePreset': 'Codigo predefinido:',
+    's6.encode': 'Codificar',
+    's6.clickFlip': 'Preme nos bits para invertelos (simular ruido)',
+    's6.random': '⚡ Erro aleatorio',
+    's6.clear': '✓ Limpar erros',
+    'btn.startAnim': '▶ Iniciar animacion',
+    'btn.next': 'Seguinte paso →',
+    'btn.auto': '⚡ Reproducion automatica',
+    'btn.reset': '↺ Reiniciar',
+    'msg.startAnim': 'Preme <strong>Iniciar animacion</strong> para comezar.',
+    'msg.computeSyndrome': 'Introduce unha palabra recibida e preme <strong>Calcular sindrome</strong>.',
+    'msg.ready': '<strong>Listo!</strong>',
+    'word.step': 'Paso',
+    'word.done': 'Feito',
+    'word.validCodeword': 'Palabra valida',
+    'word.errorDetected': 'Erro detectado',
+    'word.enterBits': 'Introduce exactamente {n} bits.',
+    'word.enterBitsMultiple': 'Introduce unha cantidade de bits multiplo de {n}.',
+    'word.noError': 'Sen erro detectado',
+    'word.customFirst': 'Non hai codigo personalizado definido — vai primeiro a Seccion 4.',
+    's1.p1': 'Un codigo de bloques lineal colle unha mensaxe de k bits e codificala nunha palabra de n bits. Os n − k bits extra son redundancia.',
+    's1.formula1': '(n, k, d)_q — lonxitude n, mensaxe k, distancia minima d, tamano de alfabeto q',
+    's1.card1t': 'Lonxitude do codigo (n)',
+    's1.card1d': 'Bits totais da palabra transmitida',
+    's1.card2t': 'Lonxitude da mensaxe (k)',
+    's1.card2d': 'Bits de informacion antes de codificar',
+    's1.card3t': 'Redundancia (n − k)',
+    's1.card3d': 'Bits extra para protexer contra erros',
+    's1.card4t': 'Taxa R = k/n',
+    's1.card4d': 'Fraccion de informacion util por bit transmitido',
+    's1.repText': 'O Codigo de Repeticion Binario repite cada bit da mensaxe n veces.',
+    's1.repRate': 'Taxa = 1/n | Moi robusto, moi ineficiente',
+    's1.repN': 'Repeticions n =',
+    's1.msgBit': 'Bit da mensaxe:',
+    's1.spcText': 'O Codigo de Paridade Simple (SPC) engade un bit para que o numero total de 1s sexa par.',
+    's1.spcRate': 'Taxa = (n−1)/n | Eficiente, detecta erros de 1 bit',
+    's1.msgBinary': 'Mensaxe (binaria):',
+    's1.msgPlaceholder': 'ex. 101',
+    's1.repDemoTitle': 'Codigo de repeticion ({n},1): bit da mensaxe = {bit}',
+    's1.spcDemoTitle': 'SPC ({n},{k}): palabra codificada',
+    's1.xorAll': 'XOR de todos os bits',
+    's1.mustBe0': 'debe ser 0',
+    's1.rate': 'Taxa',
+    's2.p1': 'A codificacion e unha multiplicacion matricial sobre aritmetica binaria (GF(2)).',
+    's2.p2': 'u e o vector fila 1×k da mensaxe, G e a matriz xeradora k×n e c e a palabra 1×n.',
+    's2.muted1': 'Mira paso a paso como se calcula cada bit de c.',
+    's2.krows': 'k (filas):',
+    's2.ncols': 'n (columnas):',
+    's2.why': 'Por que forma sistematica?',
+    's2.systematicText': 'Se o primeiro bloque k×k de G e identidade, G e sistematica.',
+    's2.example': 'Exemplo: matriz xeradora sistematica SPC (4,3)',
+    's2.enterG': 'Introduce G fila por fila (binario separado por espazos):',
+    's2.row': 'Fila',
+    's2.needValues': 'Fila {row}: fan falta {n} valores',
+    's2.msgNeeds': 'A mensaxe precisa {k} bits',
+    's2.loadPresetFirst': 'Carga primeiro un predefinido',
+    's2.computingc': 'Calculando c = u · G — preme Seguinte paso para cada bit.',
+    's2.column': 'columna',
+    's2.ofG': 'de G',
+    's2.systematicBadge': 'Sistematica',
+    's2.systematicNote': 'Primeiro bloque 3×3 = Identidade. A ultima columna calcula paridade.',
+    's3.p1': 'A matriz de comprobacion H ten tamano (n−k)×n e cumpre unha propiedade clave.',
+    's3.p2': 'Se unha palabra recibida r ten ruido, r · Hᵀ = s ≠ 0. s e o sindrome.',
+    's3.card1t': 's = 0 (sindrome cero)',
+    's3.card1d': 'Palabra valida -> non se detecta erro',
+    's3.card2t': 's ≠ 0 (sindrome non cero)',
+    's3.card2d': 'A palabra foi corrompida na canle',
+    's3.muted1': 'Observa como H pola palabra recibida da sindrome cero ou non cero.',
+    's3.binaryPlaceholder': 'cadea binaria',
+    's3.expectedBits': 'Esperabanse {n} bits, recibidos {got}',
+    's3.readyCompute': 'Listo. Preme <strong>Animar comprobacion</strong> ou <strong>Calcular sindrome</strong>.',
+    's3.syndrome': 'Sindrome',
+    's3.flippedPos': 'Bit invertido na posicion {pos}.',
+    's3.nowCompute': 'Agora preme <strong>Calcular sindrome</strong>.',
+    's3.expectedN': 'Esperabanse {n} bits',
+    's3.computingS': 'Calculando s = r · Hᵀ — cada paso calcula un bit do sindrome.',
+    's4.p1': 'Construe o teu codigo definindo como se calcula cada bit de paridade.',
+    's4.step1': 'Paso 1 — Escoller lonxitude da mensaxe k',
+    's4.kbits': 'k (bits da mensaxe):',
+    's4.parityCount': 'Numero de bits de paridade (n−k):',
+    's4.step2': 'Paso 2 — Definir cada bit de paridade',
+    's4.step2d': 'Cada bit de paridade p_i = XOR dos bits seleccionados',
+    's4.step3': 'Paso 3 — Matriz xeradora G resultante',
+    's4.step4': 'Paso 4 — Codificar unha mensaxe',
+    's4.msgu': 'Mensaxe u (binaria, lonxitude multiplo de k):',
+    's4.block': 'Bloque',
+    's4.encodedBlocks': 'Bloques codificados',
+    's4.totalCodeStream': 'Fluxo codificado total',
+    's4.rowSumTitle': 'Vista por suma de filas (u × G)',
+    's4.rowSumDesc': 'Seleccionanse as filas onde u_i = 1 e sumanse con XOR para obter c.',
+    's4.selected': 'seleccionada',
+    's4.notSelected': 'non seleccionada',
+    's4.parityBit': 'Bit de paridade',
+    's4.xorSelected': 'XOR dos bits seleccionados:',
+    's4.columns': 'Columnas',
+    's4.encodedCodeword': 'Palabra codificada',
+    's4.noBitsSelected': '0 (sen bits seleccionados)',
+    's5.p1': 'Para codigos binarios (q=2), se G esta en forma sistematica [I_k | P], enton H e:',
+    's5.p2': 'Isto funciona porque H por unha palabra valida da 0 en GF(2).',
+    's5.pressAnimate': 'Preme <strong>Animar conversion G→H</strong> para ver os pasos.',
+    's5.gSystematic': 'G (sistematica)',
+    's5.pExtracted': 'P (extraida)',
+    's5.ptTransposed': 'Pᵀ (transposta)',
+    's5.step1': '<strong>Paso 1:</strong> Identificar o bloque identidade I<sub>k</sub>',
+    's5.step2': '<strong>Paso 2:</strong> Extraer a matriz P',
+    's5.step3': '<strong>Paso 3:</strong> Calcular Pᵀ',
+    's5.step4': '<strong>Paso 4:</strong> Construir H = [Pᵀ | I<sub>n−k</sub>]',
+    's6.p1': 'Simula unha canle con ruido. Codifica unha mensaxe, inverte bits e revisa o sindrome.',
+    's6.messageu': 'Mensaxe u:',
+    's6.clickFlipBit': 'Preme para inverter o bit {n}',
+    's6.syndromeCheck': 'Comprobacion de sindrome',
+    's6.evenWarning': 'Aviso: un numero par de erros pode pasar desapercibido',
+    's6.transmissionError': 'Erro de transmision detectado!',
+    's6.flippedBits': 'Bit(s) invertido(s): posicion {pos}',
+    's6.upTo': 'ata',
+    's6.bitErrors': 'erro(s) de bit',
+    's6.dminTitle': 'd_min e capacidade fronte a erros',
+    's6.forCode': 'Para {code}',
+    's6.correctionCap': 'Capacidade de correccion',
+    's6.detectionCap': 'Capacidade de deteccion',
+    's6.statusNoError': 'Sen erro de canle',
+    's6.statusNoErrorText': 'Non fai falta correccion.',
+    's6.statusCorrectable': 'Corrixible',
+    's6.statusCorrectableText': 'Peso de erro w={w} <= t={t}. En principio, esta dentro da capacidade de correccion.',
+    's6.statusDetectableOnly': 'So detectable',
+    's6.statusDetectableOnlyText': 'Peso de erro w={w} > t={t} e <= d_min-1={d}. E detectable, pero non corrixible de forma garantida.',
+    's6.statusBeyond': 'Fora da deteccion garantida',
+    's6.statusBeyondText': 'Peso de erro w={w} > d_min-1={d}. A deteccion non esta garantida.',
+    'common.build': 'Construir',
+    'common.apply': 'Aplicar',
+    'label.umessage': 'u (mensaxe)',
+    'label.ggenerator': 'G (xeradora)',
+    'label.ccodeword': 'c (palabra)',
+    'label.codeword': 'Palabra',
+    'label.hparity': 'H (paridade)',
+    'label.rreceived': 'r (recibida)',
+    'label.ssyndrome': 's (sindrome)',
+    'word.code': 'codigo'
+  }
+};
+
+let currentLang = localStorage.getItem('cc_lang') || 'en';
+let currentTheme = localStorage.getItem('cc_theme') || 'dark';
+
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', currentTheme);
+  if ($('themeSelect')) $('themeSelect').value = currentTheme;
+}
+
+function setTheme(theme) {
+  currentTheme = theme === 'light' ? 'light' : 'dark';
+  localStorage.setItem('cc_theme', currentTheme);
+  applyTheme();
+}
+
+function t(key, vars = {}) {
+  const dict = I18N[currentLang] || I18N.en;
+  const base = dict[key] || I18N.en[key] || key;
+  return Object.keys(vars).reduce((acc, k) => acc.replaceAll(`{${k}}`, vars[k]), base);
+}
+
+function applyTranslations() {
+  document.documentElement.lang = currentLang;
+  document.title = t('header.title');
+  if ($('langSelect')) $('langSelect').value = currentLang;
+  const langSel = $('langSelect');
+  if (langSel) {
+    const optEn = langSel.querySelector('option[value="en"]');
+    const optEs = langSel.querySelector('option[value="es"]');
+    const optGl = langSel.querySelector('option[value="gl"]');
+    if (optEn) optEn.textContent = 'English';
+    if (optEs) optEs.textContent = 'Español';
+    if (optGl) optGl.textContent = 'Galego';
+  }
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    el.innerHTML = t(el.dataset.i18nHtml);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
+}
+
+function setLanguage(lang) {
+  currentLang = I18N[lang] ? lang : 'en';
+  localStorage.setItem('cc_lang', currentLang);
+  applyTranslations();
+  refreshDynamicTexts();
+}
+
+function refreshDynamicTexts() {
+  updateRepDemo();
+  updateSpcDemo();
+  if (genState && genState.G && genState.G.length) resetGenAnim();
+  if (hState && hState.H && hState.H.length) resetHAnim();
+  buildParityEditor();
+  encodeMessage();
+  resetConv();
+  pgEncode();
+}
+
+function mod2(x) { return ((x % 2) + 2) % 2; }
+
+function gf2Dot(row, col) {
+  let s = 0;
+  for (let i = 0; i < row.length; i++) s += row[i] * col[i];
+  return mod2(s);
+}
+
+function gf2MatMul(A, B) {
+  // A is rows×cols1, B is cols1×cols2
+  const rows = A.length, cols = B[0].length, inner = B.length;
+  return A.map(row =>
+    Array.from({length: cols}, (_, j) =>
+      mod2(row.reduce((s, v, i) => s + v * B[i][j], 0))
+    )
+  );
+}
+
+function transpose(M) {
+  return M[0].map((_, j) => M.map(row => row[j]));
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ============================================================
+//  MATRIX RENDERER
+// ============================================================
+function renderMatrix(M, opts = {}) {
+  const {highlights = {}, label = '', id = ''} = opts;
+  const rows = M.length, cols = M[0].length;
+  const wrap = document.createElement('div');
+  wrap.style.display = 'inline-block';
+  wrap.style.textAlign = 'center';
+
+  const eq = document.createElement('div');
+  eq.className = 'matrix-wrap';
+
+  const lb = document.createElement('span');
+  lb.className = 'matrix-bracket';
+  lb.textContent = '[';
+
+  const inner = document.createElement('div');
+  inner.className = 'matrix-inner';
+  inner.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  if (id) inner.id = id;
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'matrix-cell';
+      if (M[r][c] === 0) cell.classList.add('zero-cell');
+      const key = `${r},${c}`;
+      if (highlights[key]) cell.classList.add(highlights[key]);
+      cell.textContent = M[r][c];
+      cell.dataset.r = r;
+      cell.dataset.c = c;
+      inner.appendChild(cell);
+    }
+  }
+
+  const rb = document.createElement('span');
+  rb.className = 'matrix-bracket';
+  rb.textContent = ']';
+
+  eq.appendChild(lb);
+  eq.appendChild(inner);
+  eq.appendChild(rb);
+  wrap.appendChild(eq);
+
+  if (label) {
+    const lbl = document.createElement('div');
+    lbl.className = 'matrix-label';
+    lbl.textContent = label;
+    wrap.appendChild(lbl);
+  }
+
+  return wrap;
+}
+
+function renderVector(v, opts = {}) {
+  const {label = '', highlights = {}, id = ''} = opts;
+  // column vector displayed as vertical matrix
+  const M = v.map(x => [x]);
+  return renderMatrix(M, {label, highlights, id});
+}
+
+function renderRowVector(v, opts = {}) {
+  const {label = '', highlights = {}, id = ''} = opts;
+  const M = [v];
+  return renderMatrix(M, {label, highlights, id});
+}
+
+// ============================================================
+//  NAV HIGHLIGHT
+// ============================================================
+window.addEventListener('scroll', () => {
+  const sections = document.querySelectorAll('section');
+  const navLinks = document.querySelectorAll('nav a');
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 100) current = s.id;
+  });
+  navLinks.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+  });
+});
+
+// ============================================================
+//  TABS
+// ============================================================
+function switchTab(group, id) {
+  document.querySelectorAll(`[id^="${group}-"]`).forEach(el => {
+    el.classList.remove('active');
+  });
+  document.querySelectorAll('.tab').forEach(t => {
+    if (t.closest(`#${group}`) || t.parentElement.parentElement.id === group) {
+      t.classList.remove('active');
+    }
+  });
+  $(`${group}-${id}`).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ============================================================
+//  SECTION 1 — INTRO DEMOS
+// ============================================================
+let repBit = 1;
+
+function setRepBit(b) { repBit = b; updateRepDemo(); }
+
+function updateRepDemo() {
+  const n = parseInt($('repN').value) || 3;
+  const box = $('repDemo');
+  const codeword = Array(n).fill(repBit);
+  box.innerHTML = `<div class="label">${t('s1.repDemoTitle', {n, bit: repBit})}</div>
+  <div class="bit-row" style="margin-top:8px;">
+    ${codeword.map((b,i) => `<div class="bit-col"><div class="bit msg">${b}</div><div class="bit-label">c${i+1}</div></div>`).join('')}
+  </div>
+  <div style="margin-top:10px; color:var(--text); font-size:1rem; font-weight:600;">${t('s1.rate')} = 1/${n} ≈ ${(1/n).toFixed(2)}</div>`;
+}
+
+function updateSpcDemo() {
+  const msg = $('spcMsg').value.replace(/[^01]/g,'').slice(0,8);
+  $('spcMsg').value = msg;
+  if (!msg) { $('spcDemo').innerHTML = ''; return; }
+  const ones = msg.split('').filter(b => b === '1').length;
+  const parityBit = ones % 2;
+  const codeword = msg + parityBit;
+  const box = $('spcDemo');
+  box.innerHTML = `<div class="label">${t('s1.spcDemoTitle', {n: msg.length+1, k: msg.length})}</div>
+  <div class="bit-row" style="margin-top:8px;">
+    ${msg.split('').map((b,i) => `<div class="bit-col"><div class="bit msg">${b}</div><div class="bit-label">u${i+1}</div></div>`).join('')}
+    <div class="bit-col"><div class="bit par">${parityBit}</div><div class="bit-label">p</div></div>
+  </div>
+  <div style="margin-top:10px; color:var(--text); font-size:1rem; font-weight:600;">
+    ${t('s1.xorAll')} = ${codeword.split('').reduce((a,b)=>a^parseInt(b),0)} (${t('s1.mustBe0')}) &nbsp;|&nbsp;
+    ${t('s1.rate')} = ${msg.length}/${codeword.length} = ${(msg.length/codeword.length).toFixed(2)}
+  </div>`;
+}
+
+updateRepDemo();
+updateSpcDemo();
+
+// ============================================================
+//  KNOWN CODES
+// ============================================================
+const CODES = {
+  spc4: {
+    name: 'SPC (4,3)',
+    k: 3, n: 4,
+    dmin: 2,
+    G: [[1,0,0,1],[0,1,0,1],[0,0,1,1]],
+    H: [[1,1,1,1]],
+    defaultMsg: [1,0,1]
+  },
+  rep3: {
+    name: 'Repetition (3,1)',
+    k: 1, n: 3,
+    dmin: 3,
+    G: [[1,1,1]],
+    H: [[1,1,0],[1,0,1]],
+    defaultMsg: [1]
+  },
+  hamming74: {
+    name: 'Hamming (7,4)',
+    k: 4, n: 7,
+    dmin: 3,
+    G: [
+      [1,0,0,0,1,1,0],
+      [0,1,0,0,1,0,1],
+      [0,0,1,0,0,1,1],
+      [0,0,0,1,1,1,1]
+    ],
+    H: [
+      [1,1,0,1,1,0,0],
+      [1,0,1,1,0,1,0],
+      [0,1,1,1,0,0,1]
+    ],
+    defaultMsg: [1,0,1,1]
+  }
+};
+
+// ============================================================
+//  SECTION 2 — GENERATOR MATRIX ANIMATION
+// ============================================================
+let genState = {
+  code: null,
+  u: [],
+  G: [],
+  c: [],
+  step: -1,
+  totalSteps: 0,
+  autoTimer: null,
+  running: false
+};
+
+function loadGenPreset() {
+  const preset = $('genPreset').value;
+  $('genCustomInput').style.display = preset === 'custom' ? 'block' : 'none';
+  if (preset !== 'custom') {
+    genState.code = CODES[preset];
+    genState.u = [...genState.code.defaultMsg];
+    genState.G = genState.code.G.map(r => [...r]);
+    resetGenAnim();
+  }
+}
+
+function buildCustomGen() {
+  const k = parseInt($('genK').value);
+  const n = parseInt($('genN').value);
+  let html = `<div class="input-row" style="margin-top:8px;"><span style="color:var(--muted);font-size:.85rem;">${t('s2.enterG')}</span></div>`;
+  for (let r = 0; r < k; r++) {
+    html += `<div class="input-row"><label>${t('s2.row')} ${r+1}:</label>
+    <input type="text" id="gRow${r}" value="${Array(n).fill(0).join(' ')}" placeholder="${Array(n).fill(0).join(' ')}" style="font-family:monospace;width:${n*28+40}px;">
+    </div>`;
+  }
+  html += `<div class="input-row"><label>${t('s6.messageu')}</label>
+  <input type="text" id="gMsg" value="${Array(k).fill(0).join(' ')}" placeholder="${Array(k).fill(0).join(' ')}" style="width:${k*28+40}px;font-family:monospace;">
+  <button class="btn btn-success" onclick="applyCustomGen()">${t('common.apply')}</button></div>`;
+  $('genMatrixInput').innerHTML = html;
+}
+
+function applyCustomGen() {
+  const k = parseInt($('genK').value);
+  const n = parseInt($('genN').value);
+  const G = [];
+  for (let r = 0; r < k; r++) {
+    const vals = $(`gRow${r}`).value.trim().split(/\s+/).map(Number);
+    if (vals.length !== n) { alert(t('s2.needValues', {row: r+1, n})); return; }
+    G.push(vals);
+  }
+  const u = $('gMsg').value.trim().split(/\s+/).map(Number);
+  if (u.length !== k) { alert(t('s2.msgNeeds', {k})); return; }
+  genState.code = {name:'Custom', k, n, G, H:[], defaultMsg:u};
+  genState.u = u;
+  genState.G = G;
+  resetGenAnim();
+}
+
+function resetGenAnim() {
+  clearTimeout(genState.autoTimer);
+  genState.step = -1;
+  genState.running = false;
+  genState.c = [];
+  $('btnGenNext').disabled = true;
+  $('btnGenAuto').disabled = true;
+  $('btnGenStart').disabled = false;
+  $('genStepInfo').innerHTML = t('msg.startAnim');
+  $('multiplySteps').innerHTML = '';
+  $('genStepCounter').innerHTML = '';
+
+  if (!genState.G || !genState.G.length) return;
+  renderGenEquation();
+  showSpcGExample();
+}
+
+function renderGenEquation(cPartial, step) {
+  const {u, G} = genState;
+  if (!G || !G.length) return;
+  const k = G.length, n = G[0].length;
+
+  // c vector (partial or all ?)
+  const c = cPartial || Array(n).fill('?');
+
+  const eq = $('genEquation');
+  eq.innerHTML = '';
+
+  // u row vector
+  const uEl = renderRowVector(u, {label: t('label.umessage'), id: 'genUInner'});
+  eq.appendChild(uEl);
+
+  const op = document.createElement('span');
+  op.className = 'eq-op';
+  op.textContent = '×';
+  eq.appendChild(op);
+
+  // G matrix
+  const gEl = renderMatrix(G, {label: t('label.ggenerator'), id: 'genGInner'});
+  eq.appendChild(gEl);
+
+  const eq2 = document.createElement('span');
+  eq2.className = 'eq-op';
+  eq2.textContent = '=';
+  eq.appendChild(eq2);
+
+  // c row vector (result)
+  const cEl = renderRowVector(c.map(x => x === '?' ? 0 : x), {label: t('label.ccodeword'), id: 'genCInner'});
+  // mark unknowns
+  eq.appendChild(cEl);
+
+  // Update c cells to show ?
+  setTimeout(() => {
+    const cInner = $('genCInner');
+    if (!cInner) return;
+    const cells = cInner.querySelectorAll('.matrix-cell');
+    cells.forEach((cell, idx) => {
+      if (c[idx] === '?') { cell.textContent = '?'; cell.style.color = 'var(--muted)'; }
+    });
+  }, 0);
+}
+
+function highlightGenStep(colIdx) {
+  // Highlight column colIdx of G and the corresponding c cell
+  const uInner = $('genUInner');
+  const gInner = $('genGInner');
+  const cInner = $('genCInner');
+  if (!uInner || !gInner || !cInner) return;
+
+  const k = genState.G.length;
+  const n = genState.G[0].length;
+  const pairColors = [
+    {bg: 'rgba(88,166,255,.38)', border: '#58a6ff'},
+    {bg: 'rgba(188,140,255,.38)', border: '#bc8cff'},
+    {bg: 'rgba(227,179,65,.38)', border: '#e3b341'},
+    {bg: 'rgba(63,185,80,.38)', border: '#3fb950'},
+    {bg: 'rgba(247,129,102,.38)', border: '#f78166'}
+  ];
+
+  const clearInlineStyle = cell => {
+    cell.style.background = '';
+    cell.style.borderColor = '';
+    cell.style.color = '';
+    cell.style.boxShadow = '';
+    cell.style.transform = '';
+    cell.style.opacity = '';
+    cell.style.fontWeight = '';
+    cell.style.textShadow = '';
+  };
+
+  // reset u row
+  uInner.querySelectorAll('.matrix-cell').forEach(cell => {
+    cell.className = 'matrix-cell';
+    clearInlineStyle(cell);
+    if (parseInt(cell.textContent, 10) === 0) cell.classList.add('zero-cell');
+  });
+
+  // reset all
+  gInner.querySelectorAll('.matrix-cell').forEach(cell => {
+    cell.className = 'matrix-cell';
+    clearInlineStyle(cell);
+    if (parseInt(cell.dataset.r, 10) >= 0) {
+      const val = genState.G[parseInt(cell.dataset.r, 10)][parseInt(cell.dataset.c, 10)];
+      if (val === 0) cell.classList.add('zero-cell');
+    }
+  });
+
+  // guide column in G
+  gInner.querySelectorAll('.matrix-cell').forEach(cell => {
+    if (parseInt(cell.dataset.c) === colIdx) {
+      cell.classList.add('highlight-col');
+    }
+  });
+
+  // pairwise highlighting: each u_i with G_i,colIdx in same color
+  const uCells = Array.from(uInner.querySelectorAll('.matrix-cell'));
+  uCells.forEach((uCell, i) => {
+    const color = pairColors[i % pairColors.length];
+    const gCell = gInner.querySelector(`.matrix-cell[data-r="${i}"][data-c="${colIdx}"]`);
+    if (!gCell) return;
+
+    [uCell, gCell].forEach(cell => {
+      cell.style.background = color.bg;
+      cell.style.borderColor = color.border;
+      cell.style.color = 'var(--text)';
+      cell.style.boxShadow = `0 0 0 1px ${color.border} inset`;
+      cell.style.transform = 'scale(1.12)';
+      cell.style.fontWeight = '800';
+      cell.style.textShadow = '0 0 1px rgba(0,0,0,.25)';
+    });
+
+    if (genState.u[i] === 0 || genState.G[i][colIdx] === 0) {
+      gCell.style.opacity = '0.92';
+    }
+  });
+
+  // highlight result cell
+  const cCells = cInner.querySelectorAll('.matrix-cell');
+  cCells.forEach((cell, idx) => {
+    clearInlineStyle(cell);
+    cell.classList.remove('result-active');
+    if (idx === colIdx) cell.classList.add('result-active');
+  });
+}
+
+function startGenAnim() {
+  if (!genState.G || !genState.G.length) { alert(t('s2.loadPresetFirst')); return; }
+  const {u, G} = genState;
+  const n = G[0].length;
+  genState.c = Array(n).fill('?');
+  genState.step = 0;
+  genState.totalSteps = n;
+  genState.running = true;
+  $('btnGenStart').disabled = true;
+  $('btnGenNext').disabled = false;
+  $('btnGenAuto').disabled = false;
+  $('multiplySteps').innerHTML = '';
+  renderGenEquation(genState.c);
+  updateGenStepCounter();
+  $('genStepInfo').innerHTML = `${t('msg.ready')} ${t('s2.computingc')}`;
+}
+
+function nextGenStep() {
+  const {step, totalSteps, u, G} = genState;
+  if (step >= totalSteps) return;
+
+  const col = G.map(row => row[step]);
+  const dotTerms = u.map((ui, i) => `${ui}·${col[i]}`).join(' ⊕ ');
+  const value = gf2Dot(u, col);
+  genState.c[step] = value;
+  renderGenEquation(genState.c, step);
+
+  setTimeout(() => highlightGenStep(step), 50);
+
+  // Show multiply step
+  const stepDiv = document.createElement('div');
+  stepDiv.className = 'multiply-step fade-in';
+  stepDiv.innerHTML = `c<sub>${step+1}</sub> = ${dotTerms} = ${u.map((ui,i)=>ui*col[i]).join(' + ')} mod 2 = <span class="result-val">${value}</span>`;
+  $('multiplySteps').appendChild(stepDiv);
+  $('multiplySteps').scrollTop = $('multiplySteps').scrollHeight;
+
+  $('genStepInfo').innerHTML = `<strong>${t('word.step')} ${step+1}/${totalSteps}:</strong> c<sub>${step+1}</sub> = u · (${t('s2.column')} ${step+1} ${t('s2.ofG')}) = <strong>${value}</strong>`;
+
+  genState.step++;
+  updateGenStepCounter();
+
+  if (genState.step >= totalSteps) {
+    $('btnGenNext').disabled = true;
+    $('btnGenAuto').disabled = true;
+    $('genStepInfo').innerHTML = `✅ <strong>${t('word.done')}!</strong> ${t('label.codeword')} c = [${genState.c.join(', ')}]`;
+    clearTimeout(genState.autoTimer);
+  }
+}
+
+function updateGenStepCounter() {
+  const {step, totalSteps} = genState;
+  const dots = Array.from({length: totalSteps}, (_, i) => {
+    const cls = i < step ? 'done' : (i === step ? 'current' : '');
+    return `<div class="step-dot ${cls}"></div>`;
+  }).join('');
+  $('genStepCounter').innerHTML = `<span style="color:var(--muted);font-size:.85rem;">${t('word.step')} ${step}/${totalSteps}</span> ${dots}`;
+}
+
+function autoGenAnim() {
+  function tick() {
+    if (genState.step < genState.totalSteps) {
+      nextGenStep();
+      genState.autoTimer = setTimeout(tick, 900);
+    }
+  }
+  $('btnGenAuto').disabled = true;
+  tick();
+}
+
+function showSpcGExample() {
+  const G = CODES.spc4.G;
+  const el = $('spcGDisplay');
+  el.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.style.display = 'flex';
+  wrap.style.gap = '16px';
+  wrap.style.alignItems = 'center';
+  wrap.style.flexWrap = 'wrap';
+  wrap.appendChild(renderMatrix(G, {label: 'G — SPC (4,3)'}));
+  const note = document.createElement('div');
+  note.style.maxWidth = '240px';
+  note.innerHTML = `<div class="badge badge-blue">${t('s2.systematicBadge')}</div>
+  <p style="margin-top:8px;font-size:.88rem;color:var(--muted);">${t('s2.systematicNote')}</p>`;
+  wrap.appendChild(note);
+  el.appendChild(wrap);
+}
+
+// Init generator section
+genState.code = CODES.spc4;
+genState.u = [...CODES.spc4.defaultMsg];
+genState.G = CODES.spc4.G.map(r=>[...r]);
+resetGenAnim();
+
+// ============================================================
+//  SECTION 3 — PARITY CHECK MATRIX ANIMATION
+// ============================================================
+let hState = {
+  code: null,
+  H: [],
+  r: [],
+  s: [],
+  step: -1,
+  totalSteps: 0,
+  autoTimer: null
+};
+
+function loadHPreset() {
+  const preset = $('hPreset').value;
+  hState.code = CODES[preset];
+  hState.H = hState.code.H.map(r=>[...r]);
+  // default: a valid codeword
+  const u = hState.code.defaultMsg;
+  const G = hState.code.G;
+  hState.r = gf2MatMul([u], G)[0];
+  $('hReceived').value = hState.r.join('');
+  renderHEquation();
+  $('hStepInfo').innerHTML = t('msg.computeSyndrome');
+  $('syndromeResult').innerHTML = '';
+  $('hMultiplySteps').innerHTML = '';
+  $('btnHNext').disabled = true;
+  $('btnHAuto').disabled = true;
+}
+
+function renderHEquation() {
+  const {H, r} = hState;
+  if (!H || !H.length) return;
+  const eq = $('hEquation');
+  eq.innerHTML = '';
+
+  eq.appendChild(renderRowVector(r, {label: t('label.rreceived'), id: 'hRInner'}));
+
+  const op = document.createElement('span');
+  op.className = 'eq-op'; op.textContent = '×';
+  eq.appendChild(op);
+
+  eq.appendChild(renderMatrix(transpose(hState.H), {label: 'Hᵀ', id: 'hHInner'}));
+
+  const op2 = document.createElement('span');
+  op2.className = 'eq-op'; op2.textContent = '=';
+  eq.appendChild(op2);
+
+  const nk = H.length;
+  eq.appendChild(renderRowVector(Array(nk).fill('?'), {label: t('label.ssyndrome'), id: 'hSInner'}));
+  // Fix ?
+  setTimeout(() => {
+    const sInner = $('hSInner');
+    if (!sInner) return;
+    sInner.querySelectorAll('.matrix-cell').forEach(c => {
+      c.textContent = '?'; c.style.color = 'var(--muted)';
+    });
+  }, 0);
+}
+
+function checkSyndrome() {
+  const raw = $('hReceived').value.replace(/[^01]/g,'');
+  const n = hState.H[0].length;
+  if (raw.length !== n) {
+    $('hStepInfo').innerHTML = `<span style="color:var(--warn)">⚠ ${t('s3.expectedBits', {n, got: raw.length})}</span>`;
+    return;
+  }
+  hState.r = raw.split('').map(Number);
+  renderHEquation();
+  $('hStepInfo').innerHTML = t('s3.readyCompute');
+  $('syndromeResult').innerHTML = '';
+  $('hMultiplySteps').innerHTML = '';
+  $('btnHNext').disabled = true;
+  $('btnHAuto').disabled = true;
+
+  // Immediate non-animated result
+  const s = gf2MatMul([hState.r], transpose(hState.H))[0];
+  const isZero = s.every(x => x === 0);
+
+  const sdiv = document.createElement('div');
+  sdiv.className = 'syndrome-box';
+  sdiv.innerHTML = `<span class="syndrome-label">${t('s3.syndrome')} s =</span>
+    <strong>[${s.join(', ')}]</strong>
+    ${isZero
+      ? `<span class="syndrome-zero">= 0 ✅ ${t('word.validCodeword')} (${t('word.noError')})</span>`
+      : `<span class="syndrome-nonzero">≠ 0 ⚠ ${t('word.errorDetected')}!</span>`}`;
+  $('syndromeResult').appendChild(sdiv);
+}
+
+function injectError() {
+  const r = [...hState.r];
+  const pos = Math.floor(Math.random() * r.length);
+  r[pos] = 1 - r[pos];
+  hState.r = r;
+  $('hReceived').value = r.join('');
+  renderHEquation();
+  $('hStepInfo').innerHTML = `⚡ ${t('s3.flippedPos', {pos: pos+1})} ${t('s3.nowCompute')}`;
+  $('syndromeResult').innerHTML = '';
+}
+
+function startHAnim() {
+  const raw = $('hReceived').value.replace(/[^01]/g,'');
+  const n = hState.H[0].length;
+  if (raw.length !== n) {
+    $('hStepInfo').innerHTML = `<span style="color:var(--warn)">⚠ ${t('s3.expectedN', {n})}</span>`;
+    return;
+  }
+  hState.r = raw.split('').map(Number);
+  hState.s = [];
+  hState.step = 0;
+  hState.totalSteps = hState.H.length;
+  $('btnHNext').disabled = false;
+  $('btnHAuto').disabled = false;
+  $('hMultiplySteps').innerHTML = '';
+  $('syndromeResult').innerHTML = '';
+  renderHEquation();
+  $('hStepInfo').innerHTML = `${t('msg.ready')} ${t('s3.computingS')}`;
+}
+
+function nextHStep() {
+  const {step, totalSteps, H, r} = hState;
+  if (step >= totalSteps) return;
+
+  const col = H.map(row => row[step]);
+  const dotTerms = r.map((ri, i) => `${ri}·${col[i]}`).join(' ⊕ ');
+  const value = gf2Dot(r, col);
+  hState.s.push(value);
+
+  renderHEquation();
+  setTimeout(() => {
+    // highlight column of H with pairwise colors against r
+    const hInner = $('hHInner');
+    const rInner = $('hRInner');
+    const sInner = $('hSInner');
+    const pairColors = [
+      {bg: 'rgba(88,166,255,.38)', border: '#58a6ff'},
+      {bg: 'rgba(188,140,255,.38)', border: '#bc8cff'},
+      {bg: 'rgba(227,179,65,.38)', border: '#e3b341'},
+      {bg: 'rgba(63,185,80,.38)', border: '#3fb950'},
+      {bg: 'rgba(247,129,102,.38)', border: '#f78166'},
+      {bg: 'rgba(57,211,83,.38)', border: '#39d353'},
+      {bg: 'rgba(255,123,114,.38)', border: '#ff7b72'}
+    ];
+
+    const clearInlineStyle = cell => {
+      cell.style.background = '';
+      cell.style.borderColor = '';
+      cell.style.color = '';
+      cell.style.boxShadow = '';
+      cell.style.transform = '';
+      cell.style.opacity = '';
+      cell.style.fontWeight = '';
+      cell.style.textShadow = '';
+    };
+
+    if (hInner) {
+      hInner.querySelectorAll('.matrix-cell').forEach(cell => {
+        cell.className = 'matrix-cell';
+        clearInlineStyle(cell);
+        if (parseInt(cell.dataset.r, 10) === step) {
+          const j = parseInt(cell.dataset.c, 10);
+          const color = pairColors[j % pairColors.length];
+          cell.style.background = color.bg;
+          cell.style.borderColor = color.border;
+          cell.style.color = 'var(--text)';
+          cell.style.boxShadow = `0 0 0 1px ${color.border} inset`;
+          cell.style.transform = 'scale(1.1)';
+          cell.style.fontWeight = '800';
+          cell.style.textShadow = '0 0 1px rgba(0,0,0,.25)';
+          if (H[j][step] === 0) {
+            cell.style.opacity = '0.78';
+          }
+        } else if (parseInt(cell.textContent, 10) === 0) {
+          cell.classList.add('zero-cell');
+        }
+      });
+    }
+    if (rInner) {
+      rInner.querySelectorAll('.matrix-cell').forEach(cell => {
+        cell.className = 'matrix-cell';
+        clearInlineStyle(cell);
+        const idx = parseInt(cell.dataset.r, 10);
+        const color = pairColors[idx % pairColors.length];
+        cell.style.background = color.bg;
+        cell.style.borderColor = color.border;
+        cell.style.color = 'var(--text)';
+        cell.style.boxShadow = `0 0 0 1px ${color.border} inset`;
+        cell.style.transform = 'scale(1.1)';
+        cell.style.fontWeight = '800';
+        cell.style.textShadow = '0 0 1px rgba(0,0,0,.25)';
+        if (H[idx][step] === 0) {
+          cell.style.opacity = '0.78';
+        }
+      });
+    }
+    if (sInner) {
+      const sCells = sInner.querySelectorAll('.matrix-cell');
+      sCells.forEach((cell, idx) => {
+        if (idx < hState.s.length) {
+          cell.textContent = hState.s[idx];
+          cell.style.color = '';
+          if (hState.s[idx] !== 0) cell.classList.add('error-cell');
+          else cell.classList.add('result-active');
+        } else {
+          cell.textContent = '?';
+          cell.style.color = 'var(--muted)';
+        }
+      });
+    }
+  }, 30);
+
+  const stepDiv = document.createElement('div');
+  stepDiv.className = 'multiply-step fade-in';
+  stepDiv.innerHTML = `s<sub>${step+1}</sub> = ${dotTerms} = ${r.map((ri,i)=>ri*col[i]).join(' + ')} mod 2 = <span class="result-val ${value?'syndrome-nonzero':''}">${value}</span>`;
+  $('hMultiplySteps').appendChild(stepDiv);
+  $('hMultiplySteps').scrollTop = $('hMultiplySteps').scrollHeight;
+
+  $('hStepInfo').innerHTML = `<strong>${t('word.step')} ${step+1}/${totalSteps}:</strong> s<sub>${step+1}</sub> = r · col ${step+1}(H) = <strong>${value}</strong>`;
+
+  hState.step++;
+
+  if (hState.step >= totalSteps) {
+    $('btnHNext').disabled = true;
+    $('btnHAuto').disabled = true;
+    const isZero = hState.s.every(x => x === 0);
+    $('hStepInfo').innerHTML = isZero
+      ? `✅ <strong>${t('s3.syndrome')} = [${hState.s.join(', ')}]</strong> — ${t('word.noError')}.`
+      : `⚠ <strong>${t('s3.syndrome')} = [${hState.s.join(', ')}]</strong> — ${t('word.errorDetected')}!`;
+    clearTimeout(hState.autoTimer);
+  }
+}
+
+function autoHAnim() {
+  function tick() {
+    if (hState.step < hState.totalSteps) {
+      nextHStep();
+      hState.autoTimer = setTimeout(tick, 900);
+    }
+  }
+  $('btnHAuto').disabled = true;
+  tick();
+}
+
+function resetHAnim() {
+  clearTimeout(hState.autoTimer);
+  hState.step = -1;
+  hState.s = [];
+  $('btnHNext').disabled = true;
+  $('btnHAuto').disabled = true;
+  $('hStepInfo').innerHTML = t('msg.computeSyndrome');
+  $('hMultiplySteps').innerHTML = '';
+  $('syndromeResult').innerHTML = '';
+  renderHEquation();
+}
+
+// Init
+hState.code = CODES.spc4;
+hState.H = CODES.spc4.H.map(r=>[...r]);
+hState.r = gf2MatMul([CODES.spc4.defaultMsg], CODES.spc4.G)[0];
+$('hReceived').value = hState.r.join('');
+renderHEquation();
+
+// ============================================================
+//  SECTION 4 — INTERACTIVE ENCODER
+// ============================================================
+let iState = { k: 3, nk: 1, parityDefs: [[true,true,true]] };
+
+function buildParityEditor() {
+  const k = Math.max(1, Math.min(5, parseInt($('iK').value) || 3));
+  const nk = Math.max(1, Math.min(4, parseInt($('iParity').value) || 1));
+  iState.k = k;
+  iState.nk = nk;
+
+  // Adjust parityDefs
+  while (iState.parityDefs.length < nk) iState.parityDefs.push(Array(k).fill(false));
+  iState.parityDefs = iState.parityDefs.slice(0, nk).map(def => {
+    while (def.length < k) def.push(false);
+    return def.slice(0, k);
+  });
+
+  // Build editor
+  const grid = $('parityEditor');
+  grid.innerHTML = '';
+  for (let p = 0; p < nk; p++) {
+    const slot = document.createElement('div');
+    slot.className = 'parity-slot';
+    let checks = '';
+    for (let m = 0; m < k; m++) {
+      const chk = iState.parityDefs[p][m] ? 'checked' : '';
+      checks += `<label><input type="checkbox" ${chk} onchange="toggleParity(${p},${m},this.checked)"> u<sub>${m+1}</sub></label>`;
+    }
+    slot.innerHTML = `<h5>${t('s4.parityBit')} p<sub>${p+1}</sub></h5>
+    <p>${t('s4.xorSelected')}</p>
+    <div class="checkbox-group">${checks}</div>`;
+    grid.appendChild(slot);
+  }
+
+  buildIGenMatrix();
+  encodeMessage();
+}
+
+function toggleParity(p, m, val) {
+  iState.parityDefs[p][m] = val;
+  buildIGenMatrix();
+  encodeMessage();
+}
+
+function buildIGenMatrix() {
+  const {k, nk, parityDefs} = iState;
+  const n = k + nk;
+  // G = [I_k | P] where P[m][p] = parityDefs[p][m]
+  const G = Array.from({length: k}, (_, m) => {
+    const ident = Array(k).fill(0);
+    ident[m] = 1;
+    const parCols = parityDefs.map(def => def[m] ? 1 : 0);
+    return [...ident, ...parCols];
+  });
+  iState.G = G;
+
+  const el = $('iGenMatrix');
+  el.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.style.display = 'flex';
+  wrap.style.gap = '24px';
+  wrap.style.alignItems = 'flex-start';
+  wrap.style.flexWrap = 'wrap';
+  wrap.appendChild(renderMatrix(G, {label: `G (${n}×${k} — ${n},${k} ${t('word.code')})`}));
+
+  // Also show column labels
+  const lbl = document.createElement('div');
+  lbl.style.fontSize = '.82rem';
+  lbl.style.color = 'var(--muted)';
+  lbl.style.marginTop = '8px';
+  lbl.innerHTML = `${t('s4.columns')}: <span style="color:var(--accent)">u₁…u${k}</span> | <span style="color:var(--purple)">p₁…p${nk}</span><br>
+    ${t('s1.rate')} = ${k}/${n} ≈ ${(k/n).toFixed(2)}`;
+  wrap.appendChild(lbl);
+  el.appendChild(wrap);
+}
+
+function encodeMessage() {
+  const raw = $('iMessage').value.replace(/[^01]/g,'');
+  const {k, nk, G, parityDefs} = iState;
+  if (!G) return;
+
+  if (!raw.length || raw.length % k !== 0) {
+    $('iEncodeResult').innerHTML = `<p style="color:var(--muted)">${t('word.enterBitsMultiple', {n: k})}</p>`;
+    return;
+  }
+  const blocks = [];
+  for (let i = 0; i < raw.length; i += k) {
+    blocks.push(raw.slice(i, i + k).split('').map(Number));
+  }
+
+  const encodedBlocks = blocks.map(u => ({
+    u,
+    c: gf2MatMul([u], G)[0]
+  }));
+
+  const el = $('iEncodeResult');
+
+  let html = `<div class="result-box"><div class="label">${t('s4.encodedBlocks')}</div>`;
+
+  encodedBlocks.forEach((blk, idx) => {
+    const msgBits = blk.c.slice(0, k);
+    const parBits = blk.c.slice(k);
+
+    html += `<div style="margin-top:${idx === 0 ? 8 : 18}px; padding-top:${idx === 0 ? 0 : 12}px; border-top:${idx === 0 ? 'none' : '1px solid var(--border)'};">
+      <div class="label" style="margin-bottom:8px;">${t('s4.block')} ${idx+1}: ${blk.u.join('')} → c = u · G</div>
+      <div class="bit-row" style="margin-top:6px;">
+        ${msgBits.map((b,i) => `<div class="bit-col"><div class="bit msg">${b}</div><div class="bit-label">u${i+1}</div></div>`).join('')}
+        <div style="display:flex;align-items:center;margin:0 4px;color:var(--border);font-size:1.2rem;">|</div>
+        ${parBits.map((b,i) => `<div class="bit-col"><div class="bit par">${b}</div><div class="bit-label">p${i+1}</div></div>`).join('')}
+      </div>`;
+
+    html += `<div style="margin-top:10px;">`;
+    parityDefs.forEach((def, p) => {
+      const contributing = def.map((v,m) => v ? `u${m+1}(=${blk.u[m]})` : null).filter(Boolean);
+      const val = parBits[p];
+      html += `<div style="font-size:.83rem;color:var(--muted);margin:3px 0;font-family:monospace;">
+        p${p+1} = ${contributing.length ? contributing.join(' ⊕ ') : t('s4.noBitsSelected')} = <strong style="color:var(--purple)">${val}</strong>
+      </div>`;
+    });
+    html += `</div>`;
+
+    // Row-sum visualization: c = XOR of rows of G where u_i = 1
+    const rowColors = ['#58a6ff', '#bc8cff', '#e3b341', '#3fb950', '#f78166', '#39d353', '#ff7b72'];
+    const selectedRows = [];
+    blk.u.forEach((bit, i) => {
+      if (bit === 1) selectedRows.push(i);
+    });
+
+    let sumVec = Array(G[0].length).fill(0);
+    selectedRows.forEach(rIdx => {
+      sumVec = xorVec(sumVec, G[rIdx]);
+    });
+
+    html += `<div class="row-sum-viz">
+      <div class="row-sum-head">${t('s4.rowSumTitle')}</div>
+      <div class="row-sum-sub">${t('s4.rowSumDesc')}</div>`;
+
+    for (let r = 0; r < G.length; r++) {
+      const active = blk.u[r] === 1;
+      const color = rowColors[r % rowColors.length];
+      html += `<div class="row-line ${active ? 'active' : ''}" style="--row-color:${color};">
+        <span class="row-tag">u${r+1}=${blk.u[r]} (${active ? t('s4.selected') : t('s4.notSelected')})</span>
+        <span style="color:var(--muted)">G ${t('s2.row').toLowerCase()} ${r+1}</span>
+        <div class="mini-row">
+          ${G[r].map(v => `<span class="mini-cell">${v}</span>`).join('')}
+        </div>
+      </div>`;
+    }
+
+    html += `<div class="row-sum-result">c = ${selectedRows.length ? selectedRows.map(r => `G${r+1}`).join(' ⊕ ') : '0'} = <strong style="color:var(--accent2)">${sumVec.join('')}</strong></div>
+    </div></div>`;
+  });
+
+  const totalStream = encodedBlocks.flatMap(b => b.c).join('');
+  html += `<div style="margin-top:14px; padding-top:12px; border-top:1px dashed var(--border);">
+    <div class="label">${t('s4.totalCodeStream')}</div>
+    <div style="font-family:monospace; color:var(--accent2); font-size:1rem; word-break:break-all;">${totalStream}</div>
+  </div></div>`;
+
+  el.innerHTML = html;
+}
+
+// Init interactive encoder
+buildParityEditor();
+$('iMessage').value = '101';
+encodeMessage();
+
+// ============================================================
+//  SECTION 5 — G <-> H CONVERSION ANIMATION
+// ============================================================
+let convState = { G: null, H: null, step: 0, timer: null };
+
+function loadConvPreset() {
+  const v = $('convPreset').value;
+  if (v === 'custom') {
+    if (iState.G) {
+      convState.G = iState.G;
+      const {k, nk} = iState;
+      const n = k + nk;
+      // derive H from systematic G = [I|P]
+      const P = iState.G.map(row => row.slice(k));
+      const Pt = transpose(P);
+      const Ink = Array.from({length: nk}, (_,i) => Array.from({length:nk},(_,j) => i===j?1:0));
+      convState.H = Pt.map((row, i) => [...row, ...Ink[i]]);
+    } else {
+      alert(t('word.customFirst'));
+      return;
+    }
+  } else {
+    convState.G = CODES[v].G;
+    convState.H = CODES[v].H;
+  }
+  resetConv();
+}
+
+function resetConv() {
+  clearTimeout(convState.timer);
+  convState.step = 0;
+  renderConvDisplay(0);
+  $('convInfo').innerHTML = t('s5.pressAnimate');
+}
+
+function renderConvDisplay(step) {
+  const {G, H} = convState;
+  if (!G) return;
+  const k = G.length, n = G[0].length, nk = n - k;
+
+  const el = $('convDisplay');
+  el.innerHTML = '';
+
+  const row = document.createElement('div');
+  row.style.display = 'flex';
+  row.style.gap = '32px';
+  row.style.flexWrap = 'wrap';
+  row.style.alignItems = 'flex-start';
+
+  // G
+  const gWrap = document.createElement('div');
+  gWrap.innerHTML = `<div class="matrix-label" style="margin-bottom:6px;">${t('s5.gSystematic')}</div>`;
+
+  // Highlight identity part (step>=1) and P part (step>=2)
+  const gHL = {};
+  if (step >= 1) {
+    for (let r = 0; r < k; r++) for (let c = 0; c < k; c++) gHL[`${r},${c}`] = 'highlight-row';
+  }
+  if (step >= 2) {
+    for (let r = 0; r < k; r++) for (let c = k; c < n; c++) gHL[`${r},${c}`] = 'highlight-col';
+  }
+  gWrap.appendChild(renderMatrix(G, {highlights: gHL}));
+
+  const P = G.map(row => row.slice(k));
+
+  row.appendChild(gWrap);
+
+  if (step >= 2) {
+    const arrow = document.createElement('div');
+    arrow.innerHTML = '<div style="color:var(--muted);font-size:2rem;margin-top:32px;">→</div>';
+    row.appendChild(arrow);
+
+    // P submatrix
+    const pWrap = document.createElement('div');
+    pWrap.innerHTML = `<div class="matrix-label" style="margin-bottom:6px;">${t('s5.pExtracted')}</div>`;
+    pWrap.appendChild(renderMatrix(P));
+    row.appendChild(pWrap);
+  }
+
+  if (step >= 3) {
+    const arrow2 = document.createElement('div');
+    arrow2.innerHTML = '<div style="color:var(--muted);font-size:2rem;margin-top:32px;">→</div>';
+    row.appendChild(arrow2);
+
+    const Pt = transpose(P);
+    const ptWrap = document.createElement('div');
+    ptWrap.innerHTML = `<div class="matrix-label" style="margin-bottom:6px;">${t('s5.ptTransposed')}</div>`;
+    ptWrap.appendChild(renderMatrix(Pt));
+    row.appendChild(ptWrap);
+  }
+
+  if (step >= 4 && H) {
+    const arrow3 = document.createElement('div');
+    arrow3.innerHTML = '<div style="color:var(--muted);font-size:2rem;margin-top:32px;">→</div>';
+    row.appendChild(arrow3);
+
+    const hWrap = document.createElement('div');
+    hWrap.innerHTML = `<div class="matrix-label" style="margin-bottom:6px;">H = [Pᵀ | I<sub>n−k</sub>]</div>`;
+    hWrap.appendChild(renderMatrix(H));
+    row.appendChild(hWrap);
+  }
+
+  el.appendChild(row);
+}
+
+async function animateConversion() {
+  const steps = [
+    {step:1, msg:t('s5.step1')},
+    {step:2, msg:t('s5.step2')},
+    {step:3, msg:t('s5.step3')},
+    {step:4, msg:t('s5.step4')},
+  ];
+  for (const {step, msg} of steps) {
+    convState.step = step;
+    renderConvDisplay(step);
+    $('convInfo').innerHTML = msg;
+    await sleep(1200);
+  }
+}
+
+// Init
+convState.G = CODES.spc4.G;
+convState.H = CODES.spc4.H;
+resetConv();
+
+// ============================================================
+//  SECTION 6 — NOISE PLAYGROUND
+// ============================================================
+let pgState = {
+  code: CODES.spc4,
+  codeword: [],
+  noisy: [],
+};
+
+function loadPgPreset() {
+  pgState.code = CODES[$('pgPreset').value];
+  // Update message placeholder
+  $('pgMessage').value = pgState.code.defaultMsg.join('');
+  pgEncode();
+}
+
+function pgEncode() {
+  const code = pgState.code;
+  const raw = $('pgMessage').value.replace(/[^01]/g,'').slice(0, code.k);
+  if (raw.length !== code.k) {
+    $('pgCodeword').innerHTML = `<span style="color:var(--muted)">${t('word.enterBits', {n: code.k})}</span>`;
+    $('pgNoisyRow').innerHTML = '';
+    return;
+  }
+  const u = raw.split('').map(Number);
+  const c = gf2MatMul([u], code.G)[0];
+  pgState.codeword = c;
+  pgState.noisy = [...c];
+  renderPgDistanceInfo();
+  renderPgCodeword(c);
+  renderPgNoisyRow();
+  $('pgSyndromeDisplay').innerHTML = '';
+}
+
+function renderPgDistanceInfo() {
+  const code = pgState.code;
+  const dmin = code.dmin || 1;
+  const tCorr = Math.floor((dmin - 1) / 2);
+  const tDet = dmin - 1;
+
+  const el = $('pgDistanceInfo');
+  if (!el) return;
+
+  el.innerHTML = `<div class="label">${t('s6.dminTitle')}</div>
+  <div style="font-size:.9rem;color:var(--muted);line-height:1.6;">
+    ${t('s6.forCode', {code: code.name})}: <strong style="color:var(--yellow)">d_min = ${dmin}</strong><br>
+    ${t('s6.correctionCap')}: <strong style="color:var(--accent2)">t = floor((d_min - 1)/2) = ${tCorr}</strong> ${t('s6.bitErrors')}<br>
+    ${t('s6.detectionCap')}: ${t('s6.upTo')} <strong style="color:var(--accent)">${tDet}</strong> ${t('s6.bitErrors')}
+  </div>`;
+}
+
+function renderPgCodeword(c) {
+  const k = pgState.code.k;
+  $('pgCodeword').innerHTML = `<div class="label">${t('s4.encodedCodeword')} c</div>
+  <div class="bit-row" style="margin-top:8px;">
+    ${c.map((b,i) => `<div class="bit-col">
+      <div class="bit ${i<k?'msg':'par'}">${b}</div>
+      <div class="bit-label">${i<k?`u${i+1}`:`p${i-k+1}`}</div>
+    </div>`).join('')}
+  </div>`;
+}
+
+function renderPgNoisyRow() {
+  const {codeword, noisy} = pgState;
+  const row = $('pgNoisyRow');
+  row.innerHTML = '';
+  noisy.forEach((b, i) => {
+    const col = document.createElement('div');
+    col.className = 'bit-col';
+    col.style.cursor = 'pointer';
+    const bit = document.createElement('div');
+    const isError = b !== codeword[i];
+    bit.className = `bit ${isError ? 'error' : 'ok'}`;
+    bit.textContent = b;
+    bit.title = t('s6.clickFlipBit', {n: i+1});
+    col.addEventListener('click', () => { pgFlipBit(i); });
+    const lbl = document.createElement('div');
+    lbl.className = 'bit-label';
+    lbl.textContent = `r${i+1}`;
+    col.appendChild(bit);
+    col.appendChild(lbl);
+    row.appendChild(col);
+  });
+}
+
+function pgFlipBit(i) {
+  pgState.noisy[i] = 1 - pgState.noisy[i];
+  renderPgNoisyRow();
+  $('pgSyndromeDisplay').innerHTML = '';
+}
+
+function pgRandomError() {
+  const pos = Math.floor(Math.random() * pgState.codeword.length);
+  pgState.noisy = [...pgState.codeword];
+  pgState.noisy[pos] = 1 - pgState.noisy[pos];
+  renderPgNoisyRow();
+  $('pgSyndromeDisplay').innerHTML = '';
+}
+
+function pgClearErrors() {
+  pgState.noisy = [...pgState.codeword];
+  renderPgNoisyRow();
+  $('pgSyndromeDisplay').innerHTML = '';
+}
+
+function pgCheckSyndrome() {
+  const {code, noisy, codeword} = pgState;
+  const H = code.H;
+  const dmin = code.dmin || 1;
+  const tCorr = Math.floor((dmin - 1) / 2);
+  const tDet = dmin - 1;
+  const s = gf2MatMul([noisy], transpose(H))[0];
+  const isZero = s.every(x => x === 0);
+
+  const el = $('pgSyndromeDisplay');
+  const errors = noisy.map((b,i) => b !== codeword[i] ? i+1 : null).filter(Boolean);
+  const w = errors.length;
+
+  let capabilityLabel = '';
+  let capabilityText = '';
+  if (w === 0) {
+    capabilityLabel = t('s6.statusNoError');
+    capabilityText = t('s6.statusNoErrorText');
+  } else if (w <= tCorr) {
+    capabilityLabel = t('s6.statusCorrectable');
+    capabilityText = t('s6.statusCorrectableText', {w, t: tCorr});
+  } else if (w <= tDet) {
+    capabilityLabel = t('s6.statusDetectableOnly');
+    capabilityText = t('s6.statusDetectableOnlyText', {w, t: tCorr, d: tDet});
+  } else {
+    capabilityLabel = t('s6.statusBeyond');
+    capabilityText = t('s6.statusBeyondText', {w, d: tDet});
+  }
+
+  let html = `<div class="result-box fade-in">
+  <div class="label">${t('s6.syndromeCheck')}: r × Hᵀ</div>
+  <div style="margin-top:10px;display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;">
+    <div>${renderRowVector(noisy,{label:'r'}).outerHTML}</div>
+    <div style="font-size:1.5rem;color:var(--muted);margin-top:20px;">×</div>
+    <div>${renderMatrix(transpose(H), {label:'Hᵀ'}).outerHTML}</div>
+    <div style="font-size:1.5rem;color:var(--muted);margin-top:20px;">=</div>
+    <div>${renderRowVector(s,{label:'s'}).outerHTML}</div>
+    <div style="max-width:220px;margin-top:8px;">`;
+
+  if (isZero) {
+    html += `<div class="badge badge-green" style="margin-bottom:8px;">✅ ${t('word.validCodeword')}</div>
+      <p style="font-size:.88rem;color:var(--muted);">${t('s3.syndrome')} = 0. ${t('word.noError')}.${errors.length?`<br><span style="color:var(--warn)">${t('s6.evenWarning')}</span>`:''}</p>`;
+  } else {
+    html += `<div class="badge badge-red" style="margin-bottom:8px;">⚠ ${t('word.errorDetected')}</div>
+      <p style="font-size:.88rem;color:var(--muted);">${t('s3.syndrome')} ≠ 0. ${t('s6.transmissionError')}${errors.length ? `<br>${t('s6.flippedBits', {pos: errors.join(', ')})}` : ''}</p>`;
+  }
+
+  const capClass = capabilityLabel === t('s6.statusCorrectable')
+    ? 'badge-green'
+    : capabilityLabel === t('s6.statusDetectableOnly')
+      ? 'badge-yellow'
+      : capabilityLabel === t('s6.statusNoError')
+        ? 'badge-blue'
+        : 'badge-red';
+
+  html += `<div style="margin-top:10px;">
+    <div class="badge ${capClass}" style="margin-bottom:6px;">${capabilityLabel}</div>
+    <p style="font-size:.88rem;color:var(--muted);">${capabilityText}</p>
+  </div>`;
+
+  html += `</div></div></div>`;
+  el.innerHTML = html;
+}
+
+// ============================================================
+//  SECTION 7 — STANDARD ARRAY
+// ============================================================
+let saState = {
+  code: CODES.spc4
+};
+
+function bitsToInt(bits) {
+  return bits.reduce((a, b) => (a << 1) | b, 0);
+}
+
+function intToBits(x, n) {
+  return Array.from({length: n}, (_, i) => (x >> (n - 1 - i)) & 1);
+}
+
+function xorVec(a, b) {
+  return a.map((v, i) => v ^ b[i]);
+}
+
+function syndromeOf(v, H) {
+  return gf2MatMul(H, v.map(x => [x])).map(r => r[0]);
+}
+
+function vecStr(v) {
+  return v.join('');
+}
+
+function generateCodewords(code) {
+  const total = 1 << code.k;
+  const words = [];
+  for (let m = 0; m < total; m++) {
+    const u = intToBits(m, code.k);
+    const c = gf2MatMul([u], code.G)[0];
+    words.push(c);
+  }
+  words.sort((a, b) => bitsToInt(a) - bitsToInt(b));
+  return words;
+}
+
+function loadSAPreset() {
+  saState.code = CODES[$('saPreset').value];
+  renderStandardArray();
+}
+
+function renderStandardArray() {
+  const code = saState.code;
+  const n = code.n;
+  const codewords = generateCodewords(code);
+  const codeSet = new Set(codewords.map(vecStr));
+
+  const totalVectors = 1 << n;
+  const used = new Set();
+  const leaders = [];
+
+  // First leader is always zero vector
+  leaders.push(Array(n).fill(0));
+
+  // Then pick smallest-weight then lexicographic unused vectors
+  const candidates = Array.from({length: totalVectors}, (_, x) => intToBits(x, n));
+  candidates.sort((a, b) => {
+    const wa = a.reduce((s, v) => s + v, 0);
+    const wb = b.reduce((s, v) => s + v, 0);
+    if (wa !== wb) return wa - wb;
+    return bitsToInt(a) - bitsToInt(b);
+  });
+
+  const rows = [];
+  for (const lead of leaders) {
+    const rowWords = codewords.map(cw => xorVec(lead, cw));
+    const syn = syndromeOf(lead, code.H);
+    rowWords.forEach(w => used.add(vecStr(w)));
+    rows.push({leader: lead, words: rowWords, syndrome: syn});
+  }
+
+  while (used.size < totalVectors) {
+    let nextLeader = null;
+    for (const cand of candidates) {
+      if (!used.has(vecStr(cand))) {
+        nextLeader = cand;
+        break;
+      }
+    }
+    if (!nextLeader) break;
+    const rowWords = codewords.map(cw => xorVec(nextLeader, cw));
+    const syn = syndromeOf(nextLeader, code.H);
+    rowWords.forEach(w => used.add(vecStr(w)));
+    rows.push({leader: nextLeader, words: rowWords, syndrome: syn});
+  }
+
+  const info = $('saInfo');
+  info.innerHTML = `<div class="label">${t('s7.info', {n: code.n, k: code.k, cw: 1 << code.k, cs: 1 << (code.n - code.k)})}</div>`;
+
+  const wrap = $('saTableWrap');
+  let html = `<table class="sa-table"><thead><tr>
+    <th>#</th>
+    <th>${t('s7.colLeader')}</th>
+    <th>${t('s7.colSyndrome')}</th>
+    <th>${t('s7.colWords')}</th>
+  </tr></thead><tbody>`;
+
+  rows.forEach((row, idx) => {
+    const words = row.words.map(w => {
+      const cls = codeSet.has(vecStr(w)) ? 'sa-codeword' : '';
+      return `<span class="${cls}">${vecStr(w)}</span>`;
+    }).join('  ');
+
+    html += `<tr>
+      <td>${idx + 1}</td>
+      <td class="sa-leader">${vecStr(row.leader)}</td>
+      <td style="color:var(--yellow);font-weight:700;">${vecStr(row.syndrome)}</td>
+      <td>${words}</td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+// Init playground
+$('pgMessage').value = CODES.spc4.defaultMsg.join('');
+pgEncode();
+loadSAPreset();
+
+// ============================================================
+//  INIT ALL
+// ============================================================
+loadHPreset();
+applyTheme();
+setLanguage(currentLang);
+
+</script>
+</body>
+</html>
