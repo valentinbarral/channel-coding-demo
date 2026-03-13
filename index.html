@@ -2436,7 +2436,7 @@ function nextHStep() {
   const {step, totalSteps, H, r} = hState;
   if (step >= totalSteps) return;
 
-  const col = H.map(row => row[step]);
+  const col = H[step];
   const dotTerms = r.map((ri, i) => `${ri}·${col[i]}`).join(' ⊕ ');
   const value = gf2Dot(r, col);
   hState.s.push(value);
@@ -2469,12 +2469,15 @@ function nextHStep() {
     };
 
     if (hInner) {
+      // Hᵀ has shape n×(n-k): data-r = row index (0..n-1), data-c = col index (0..n-k-1)
+      // In step `step` we highlight column `step` of Hᵀ, pairing row j with r[j] by color
       hInner.querySelectorAll('.matrix-cell').forEach(cell => {
         cell.className = 'matrix-cell';
         clearInlineStyle(cell);
-        if (parseInt(cell.dataset.r, 10) === step) {
-          const j = parseInt(cell.dataset.c, 10);
-          const color = pairColors[j % pairColors.length];
+        const cellCol = parseInt(cell.dataset.c, 10);
+        const cellRow = parseInt(cell.dataset.r, 10);
+        if (cellCol === step) {
+          const color = pairColors[cellRow % pairColors.length];
           cell.style.background = color.bg;
           cell.style.borderColor = color.border;
           cell.style.color = 'var(--text)';
@@ -2482,7 +2485,7 @@ function nextHStep() {
           cell.style.transform = 'scale(1.1)';
           cell.style.fontWeight = '800';
           cell.style.textShadow = '0 0 1px rgba(0,0,0,.25)';
-          if (H[j][step] === 0) {
+          if (H[step][cellRow] === 0) {
             cell.style.opacity = '0.78';
           }
         } else if (parseInt(cell.textContent, 10) === 0) {
@@ -2491,10 +2494,12 @@ function nextHStep() {
       });
     }
     if (rInner) {
+      // r is a row vector: data-r = 0, data-c = index (0..n-1)
+      // pair r[j] with Hᵀ[j][step] using the same color as row j
       rInner.querySelectorAll('.matrix-cell').forEach(cell => {
         cell.className = 'matrix-cell';
         clearInlineStyle(cell);
-        const idx = parseInt(cell.dataset.r, 10);
+        const idx = parseInt(cell.dataset.c, 10);
         const color = pairColors[idx % pairColors.length];
         cell.style.background = color.bg;
         cell.style.borderColor = color.border;
@@ -2503,7 +2508,7 @@ function nextHStep() {
         cell.style.transform = 'scale(1.1)';
         cell.style.fontWeight = '800';
         cell.style.textShadow = '0 0 1px rgba(0,0,0,.25)';
-        if (H[idx][step] === 0) {
+        if (H[step][idx] === 0) {
           cell.style.opacity = '0.78';
         }
       });
