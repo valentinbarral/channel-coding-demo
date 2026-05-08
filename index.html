@@ -8,56 +8,85 @@
 /* ===================== RESET & BASE ===================== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ===== DESIGN.md color palette ===== */
+/* Dark theme (default) */
 :root {
-  --bg: #0d1117;
+  --bg: #0f1116;
+  --text: #e6edf3;
   --surface: #161b22;
   --surface2: #21262d;
   --border: #30363d;
-  --text: #e6edf3;
   --text-soft: #cdd9e5;
   --muted: #8b949e;
-  --accent: #58a6ff;
+  --accent: #2f81f7;
+  /* DESIGN.md canonical control tokens */
+  --control-bg: #21262d;
+  --control-text: #e6edf3;
+  --control-border: rgba(255,255,255,0.15);
+  /* Header surface (same as card surface — distinct from bg) */
+  --header: #161b22;
+  /* Secondary functional colors — preserved for app interactivity */
   --accent2: #3fb950;
   --warn: #f78166;
   --purple: #bc8cff;
   --yellow: #e3b341;
   --pink: #ff7b72;
   --teal: #39d353;
-  --radius: 12px;
-  --shadow: 0 8px 32px rgba(0,0,0,.45);
-  --header-grad: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #1a2332 100%);
-  --header-glow: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(88,166,255,.12) 0%, transparent 70%);
-  --nav-bg: rgba(13,17,23,.92);
+  /* DESIGN.md shapes & spacing */
+  --radius-card: 12px;
+  --radius-control: 6px;
+  --radius-dropdown: 8px;
+  --spacing-card-y: 25px;
+  --spacing-card-x: 25px;
+  --spacing-control-y: 6px;
+  --spacing-control-x: 10px;
+  --shadow-card: 0 5px 15px rgba(0,0,0,0.08);
+  --shadow-header: 0 1px 4px rgba(0,0,0,0.08);
+  --shadow-dropdown: 0 4px 12px rgba(0,0,0,0.15);
+  /* Typography */
+  --font-body: system-ui, sans-serif;
+  --font-mono: 'Courier New', monospace;
 }
 
+/* Light theme */
 [data-theme="light"] {
   --bg: #f5f7fb;
+  --text: #333333;
   --surface: #ffffff;
-  --surface2: #eef2f8;
+  --surface2: #f0f2f5;
   --border: #d0d8e6;
-  --text: #1e2733;
+  --text-soft: #2f3f55;
   --muted: #5f6f85;
-  --accent: #1769d1;
+  --accent: #0366d6;
+  /* DESIGN.md canonical control tokens — light */
+  --control-bg: #f0f2f5;
+  --control-text: #24292e;
+  --control-border: rgba(0,0,0,0.12);
+  /* Header surface */
+  --header: #ffffff;
+  /* Secondary */
   --accent2: #188f4e;
   --warn: #d14c2e;
   --purple: #7a4dd0;
   --yellow: #b07b11;
   --pink: #d4474b;
   --teal: #13886f;
-  --text-soft: #2f3f55;
-  --header-grad: linear-gradient(135deg, #eef3fb 0%, #f8fbff 50%, #e7effb 100%);
-  --header-glow: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(23,105,209,.12) 0%, transparent 70%);
-  --nav-bg: rgba(245,247,251,.92);
+  --shadow-card: 0 5px 15px rgba(0,0,0,0.06);
+  --shadow-header: 0 1px 4px rgba(0,0,0,0.06);
+  --shadow-dropdown: 0 4px 12px rgba(0,0,0,0.12);
 }
 
 html { scroll-behavior: smooth; }
 
 body {
-  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 400;
   background: var(--bg);
   color: var(--text);
-  line-height: 1.7;
+  line-height: 1.6;
   overflow-x: hidden;
+  transition: background 0.3s, color 0.3s;
 }
 
 /* ===================== SCROLLBAR ===================== */
@@ -67,91 +96,122 @@ body {
 
 /* ===================== HEADER ===================== */
 header {
-  background: var(--header-grad);
-  border-bottom: 1px solid var(--border);
-  padding: 60px 24px 48px;
-  text-align: center;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-header);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   position: relative;
-  overflow: hidden;
-}
-
-header::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--header-glow);
-  pointer-events: none;
+  z-index: 100;
 }
 
 header h1 {
-  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-family: var(--font-body);
+  font-size: clamp(1rem, 4.5vw, 2em);
   font-weight: 700;
-  background: linear-gradient(135deg, var(--accent), var(--purple));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 12px;
+  color: var(--text);
+  text-align: center;
+  flex: 1;
+  margin: 0;
+  /* Reset any gradient text from old design */
+  background: none;
+  -webkit-text-fill-color: currentColor;
 }
 
-header p {
-  color: var(--muted);
-  font-size: 1.1rem;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.lang-switcher {
+/* ===== Header controls (mobile dropdown) ===== */
+.header-controls {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--header);
+  border-radius: 0 0 var(--radius-dropdown) var(--radius-dropdown);
+  box-shadow: var(--shadow-dropdown);
   position: absolute;
-  top: 14px;
-  right: 18px;
+  top: 100%;
+  left: 0;
+  z-index: 100;
+  min-width: 160px;
+}
+
+.header-controls.open {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  z-index: 2;
 }
 
-.lang-switcher label {
-  font-size: .82rem;
-  color: var(--muted);
-}
-
-.lang-switcher select {
-  font-size: .82rem;
-  padding: 6px 10px;
-}
-
-.theme-switcher {
-  position: absolute;
-  top: 14px;
-  left: 18px;
+/* ===== Hamburger button (mobile only) ===== */
+.hamburger {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  z-index: 2;
+  font-size: 1.3em;
+  line-height: 1;
 }
+/* override standard button background for hamburger — already handled by .header-controls button, .hamburger rule */
 
-.theme-switcher label {
-  font-size: .82rem;
-  color: var(--muted);
+/* ===== Desktop header adjustments ===== */
+@media (min-width: 600px) {
+  header {
+    justify-content: center;
+    padding: 16px 30px;
+  }
+
+  header h1 {
+    font-size: 2em;
+  }
+
+  .hamburger {
+    display: none;
+  }
+
+  .header-controls {
+    display: block;
+    position: static;
+    background: none;
+    box-shadow: none;
+    padding: 0;
+    min-width: 0;
+  }
+
+  /* Theme toggle — pinned left edge */
+  .header-controls .theme-btn {
+    position: absolute;
+    top: 50%;
+    left: 20px;
+    transform: translateY(-50%);
+  }
+
+  /* Language selector — pinned right edge */
+  .header-controls .lang-sel {
+    position: absolute;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+  }
+
+  /* Hide nav-links in header on desktop (they appear as separate nav bar) */
+  .header-controls .nav-links {
+    display: none;
+  }
 }
 
 /* ===================== NAV ===================== */
-nav {
+#mainNav {
   position: sticky;
   top: 0;
-  z-index: 100;
-  background: var(--nav-bg);
+  z-index: 99;
+  background: var(--surface);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
-  padding: 0 24px;
+  box-shadow: var(--shadow-header);
+  padding: 0 16px;
   display: flex;
   gap: 4px;
   overflow-x: auto;
   scrollbar-width: none;
 }
-nav::-webkit-scrollbar { display: none; }
+#mainNav::-webkit-scrollbar { display: none; }
 
-nav a {
+#mainNav a {
   display: inline-block;
   padding: 14px 16px;
   color: var(--muted);
@@ -162,13 +222,13 @@ nav a {
   white-space: nowrap;
   transition: color .2s, border-color .2s;
 }
-nav a:hover, nav a.active {
+#mainNav a:hover, #mainNav a.active {
   color: var(--accent);
   border-bottom-color: var(--accent);
 }
 
 /* ===================== LAYOUT ===================== */
-main { max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
+main { max-width: 1100px; margin: 0 auto; padding: 40px 20px 80px; }
 
 section {
   margin-bottom: 72px;
@@ -185,15 +245,15 @@ h2 {
   display: flex;
   align-items: center;
   gap: 10px;
+  font-family: var(--font-body);
 }
 
-h2 .icon { font-size: 1.4rem; }
-
 h3 {
-  font-size: 1.15rem;
-  font-weight: 600;
+  font-size: 1.17em;
+  font-weight: 700;
   color: var(--accent);
   margin: 28px 0 10px;
+  font-family: var(--font-body);
 }
 
 p { margin-bottom: 14px; color: var(--text-soft); }
@@ -204,42 +264,42 @@ p { margin-bottom: 14px; color: var(--text-soft); }
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 24px;
+  border-radius: var(--radius-card);
+  padding: var(--spacing-card-y) var(--spacing-card-x);
   margin: 20px 0;
+  box-shadow: var(--shadow-card);
 }
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 25px;
   margin: 20px 0;
 }
 
 .info-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-card);
+  padding: var(--spacing-card-y) var(--spacing-card-x);
+  box-shadow: var(--shadow-card);
 }
 
-.info-card.green { border-left-color: var(--accent2); }
-.info-card.purple { border-left-color: var(--purple); }
-.info-card.warn { border-left-color: var(--warn); }
-.info-card.yellow { border-left-color: var(--yellow); }
-
-.info-card h4 { font-size: .95rem; color: var(--muted); margin-bottom: 4px; }
+.info-card h4 { font-size: .95rem; color: var(--accent); margin-bottom: 4px; font-family: var(--font-body); }
+.info-card.green h4  { color: var(--accent2); }
+.info-card.purple h4 { color: var(--purple); }
+.info-card.warn h4   { color: var(--warn); }
+.info-card.yellow h4 { color: var(--yellow); }
 .info-card p { font-size: 1.05rem; color: var(--text); margin: 0; }
 
 /* ===================== FORMULA ===================== */
 .formula {
   background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   padding: 16px 24px;
   margin: 16px 0;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
   font-size: 1.15rem;
   text-align: center;
   color: var(--text);
@@ -274,10 +334,10 @@ p { margin-bottom: 14px; color: var(--text-soft); }
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
   font-size: 1rem;
   font-weight: 600;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   background: var(--surface2);
   border: 1px solid var(--border);
   transition: all .35s cubic-bezier(.34,1.56,.64,1);
@@ -297,7 +357,7 @@ p { margin-bottom: 14px; color: var(--text-soft); }
   color: var(--muted);
   text-align: center;
   margin-top: 4px;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
 }
 
 .matrix-equation {
@@ -324,9 +384,10 @@ p { margin-bottom: 14px; color: var(--text-soft); }
 .anim-panel {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 28px;
+  border-radius: var(--radius-card);
+  padding: var(--spacing-card-y) var(--spacing-card-x);
   margin: 24px 0;
+  box-shadow: var(--shadow-card);
 }
 
 .anim-controls {
@@ -345,18 +406,68 @@ p { margin-bottom: 14px; color: var(--text-soft); }
   color: var(--muted);
   min-height: 48px;
   margin: 16px 0;
-  border-left: 3px solid var(--accent);
 }
 
 .anim-step-info strong { color: var(--accent); }
 
-/* ===================== BUTTONS ===================== */
+/* ===================== STANDARD CONTROLS (DESIGN.md canonical) ===================== */
+/* All <select> elements follow the standard control spec */
+select {
+  background: var(--control-bg);
+  color: var(--control-text);
+  border: 1px solid var(--control-border);
+  padding: var(--spacing-control-y) var(--spacing-control-x);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 16px;
+  outline: none;
+}
+
+/* Standard control buttons (theme toggle, hamburger) */
+.header-controls button,
+.hamburger {
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--control-bg);
+  color: var(--control-text);
+  border: 1px solid var(--control-border);
+  padding: var(--spacing-control-y) var(--spacing-control-x);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 16px;
+}
+
+/* Nav links inside hamburger dropdown (mobile) */
+.nav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-links a {
+  display: block;
+  padding: 8px 10px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 15px;
+  font-family: var(--font-body);
+  border-radius: var(--radius-control);
+  transition: background 0.15s;
+}
+
+.nav-links a:hover {
+  background: var(--control-bg);
+}
+
+/* ===================== ACTION BUTTONS (override standard for in-page actions) ===================== */
 .btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 9px 18px;
-  border-radius: 8px;
+  padding: var(--spacing-control-y) var(--spacing-control-x);
+  border-radius: var(--radius-control);
   border: 1px solid var(--border);
   background: var(--surface2);
   color: var(--text);
@@ -364,7 +475,7 @@ p { margin-bottom: 14px; color: var(--text-soft); }
   font-weight: 500;
   cursor: pointer;
   transition: all .2s;
-  font-family: inherit;
+  font-family: var(--font-body);
 }
 
 .btn:hover { background: var(--border); }
@@ -404,26 +515,23 @@ p { margin-bottom: 14px; color: var(--text-soft); }
 
 label { font-size: .9rem; color: var(--muted); }
 
-input[type="text"], input[type="number"], select {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: .95rem;
-  font-family: 'Courier New', monospace;
+input[type="text"], input[type="number"] {
+  background: var(--control-bg);
+  border: 1px solid var(--control-border);
+  color: var(--control-text);
+  border-radius: var(--radius-control);
+  padding: var(--spacing-control-y) var(--spacing-control-x);
+  font-size: 16px;
+  font-family: var(--font-mono);
   outline: none;
-  transition: border-color .2s;
 }
 
-input[type="text"]:focus, input[type="number"]:focus, select:focus {
+input[type="text"]:focus, input[type="number"]:focus {
   border-color: var(--accent);
 }
 
 input[type="number"] { width: 70px; }
 input[type="text"] { min-width: 160px; }
-
-select { font-family: inherit; cursor: pointer; }
 
 /* ===================== PARITY BUILDER ===================== */
 .parity-grid {
@@ -444,7 +552,7 @@ select { font-family: inherit; cursor: pointer; }
   font-size: .85rem;
   color: var(--purple);
   margin-bottom: 8px;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
 }
 
 .parity-slot p {
@@ -492,14 +600,14 @@ select { font-family: inherit; cursor: pointer; }
   border-radius: 8px;
   padding: 16px;
   margin: 16px 0;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
 }
 
 .result-box .label {
   font-size: .92rem;
   color: var(--text);
   margin-bottom: 6px;
-  font-family: inherit;
+  font-family: var(--font-body);;
 }
 
 .bit-row {
@@ -604,7 +712,7 @@ select { font-family: inherit; cursor: pointer; }
   align-items: center;
   justify-content: center;
   font-size: .78rem;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
   color: var(--text);
 }
 
@@ -620,7 +728,7 @@ select { font-family: inherit; cursor: pointer; }
   border-top: 1px dashed var(--border);
   font-size: .82rem;
   color: var(--text);
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
 }
 
 /* ===================== SYNDROME ===================== */
@@ -653,7 +761,7 @@ select { font-family: inherit; cursor: pointer; }
   font-size: .88rem;
   cursor: pointer;
   transition: all .15s;
-  font-family: inherit;
+  font-family: var(--font-body);;
 }
 
 .tab.active {
@@ -701,7 +809,7 @@ select { font-family: inherit; cursor: pointer; }
 .sa-table {
   width: 100%;
   border-collapse: collapse;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
   font-size: .84rem;
 }
 
@@ -791,8 +899,7 @@ select { font-family: inherit; cursor: pointer; }
   padding: 8px 12px;
   background: var(--surface2);
   border-radius: 6px;
-  border-left: 3px solid var(--purple);
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
   animation: fadeInUp .3s ease both;
 }
 
@@ -803,47 +910,52 @@ select { font-family: inherit; cursor: pointer; }
 @media (max-width: 600px) {
   .matrix-equation { justify-content: center; }
   .anim-panel { padding: 18px; }
-  .lang-switcher {
-    position: static;
-    justify-content: center;
-    margin-bottom: 8px;
-  }
-  .theme-switcher {
-    position: static;
-    justify-content: center;
-    margin-bottom: 8px;
-  }
+  #mainNav { display: none; }
 }
 
 /* ===================== FOOTER ===================== */
 footer {
   text-align: center;
-  padding: 32px 24px;
-  color: var(--muted);
-  font-size: .85rem;
+  padding: 30px 24px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 400;
+  opacity: 0.75;
   border-top: 1px solid var(--border);
+}
+
+footer a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline;
 }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="theme-switcher">
-    <label for="themeSelect" data-i18n="theme.label">Theme:</label>
-    <select id="themeSelect" onchange="setTheme(this.value)">
-      <option value="dark" data-i18n="theme.dark">Dark</option>
-      <option value="light" data-i18n="theme.light">Light</option>
-    </select>
-  </div>
-  <div class="lang-switcher">
-    <label for="langSelect" data-i18n="lang.label">Language:</label>
-    <select id="langSelect" onchange="setLanguage(this.value)">
+  <button class="hamburger" onclick="toggleMenu()" aria-label="Menú">☰</button>
+  <h1 data-i18n="header.title">Channel Coding Demo</h1>
+  <nav class="header-controls" id="headerControls">
+    <div class="nav-links">
+      <a href="#intro" data-i18n="nav.intro">Intro</a>
+      <a href="#generator" data-i18n="nav.generator">Generator Matrix</a>
+      <a href="#parity-check" data-i18n="nav.parity">Parity Check Matrix</a>
+      <a href="#interactive" data-i18n="nav.interactive">Interactive Encoder</a>
+      <a href="#conversion" data-i18n="nav.conversion">G ↔ H Conversion</a>
+      <a href="#playground" data-i18n="nav.playground">Noise Playground</a>
+      <a href="#standard-array" data-i18n="nav.standardArray">Standard array</a>
+    </div>
+    <button class="theme-btn" onclick="toggleTheme()">🌓</button>
+    <select class="lang-sel" onchange="setLanguage(this.value)" id="langSelect">
       <option value="en">English</option>
       <option value="es">Español</option>
       <option value="gl">Galego</option>
     </select>
-  </div>
-  <h1 data-i18n="header.title">Channel Coding Demo</h1>
+  </nav>
 </header>
 
 <nav id="mainNav">
@@ -860,7 +972,7 @@ footer {
 
 <!-- ==================== SECTION 1: INTRO ==================== -->
 <section id="intro">
-  <h2><span class="icon">📡</span> <span data-i18n="s1.title">Linear Block Codes</span></h2>
+  <h2><span data-i18n="s1.title">Linear Block Codes</span></h2>
 
   <p data-i18n="s1.p1">
     A <strong>linear block code</strong> takes a message of <em>k</em> bits and encodes it into a codeword of
@@ -930,7 +1042,7 @@ footer {
 
 <!-- ==================== SECTION 2: GENERATOR MATRIX ==================== -->
 <section id="generator">
-  <h2><span class="icon">⚙️</span> <span data-i18n="s2.title">Generator Matrix</span></h2>
+  <h2><span data-i18n="s2.title">Generator Matrix</span></h2>
 
   <p data-i18n="s2.p1">
     Encoding is simply a <strong>matrix multiplication</strong> over binary arithmetic (GF(2)):
@@ -1004,7 +1116,7 @@ footer {
 
 <!-- ==================== SECTION 3: PARITY CHECK MATRIX ==================== -->
 <section id="parity-check">
-  <h2><span class="icon">🔍</span> <span data-i18n="s3.title">Parity Check Matrix</span></h2>
+  <h2><span data-i18n="s3.title">Parity Check Matrix</span></h2>
 
   <p data-i18n="s3.p1">
     The <strong>parity-check matrix H</strong> has size (n−k)×n and satisfies a key property:
@@ -1068,7 +1180,7 @@ footer {
 
 <!-- ==================== SECTION 4: INTERACTIVE ENCODER ==================== -->
 <section id="interactive">
-  <h2><span class="icon">🛠️</span> <span data-i18n="s4.title">Interactive Encoder</span></h2>
+  <h2><span data-i18n="s4.title">Interactive Encoder</span></h2>
 
   <p data-i18n="s4.p1">
     Build your own code by defining how each <strong>parity bit</strong> is computed from the message bits.
@@ -1103,7 +1215,7 @@ footer {
 
 <!-- ==================== SECTION 5: G <-> H CONVERSION ==================== -->
 <section id="conversion">
-  <h2><span class="icon">🔄</span> <span data-i18n="s5.title">G ↔ H Conversion</span></h2>
+  <h2><span data-i18n="s5.title">G ↔ H Conversion</span></h2>
 
   <p data-i18n="s5.p1">
     For binary codes (q=2), once G is in <strong>systematic form</strong> <code>[I<sub>k</sub> | P]</code>,
@@ -1139,7 +1251,7 @@ footer {
 
 <!-- ==================== SECTION 6: NOISE PLAYGROUND ==================== -->
 <section id="playground">
-  <h2><span class="icon">🌪️</span> <span data-i18n="s6.title">Noise Playground</span></h2>
+  <h2><span data-i18n="s6.title">Noise Playground</span></h2>
 
   <p data-i18n="s6.p1">
     Simulate a noisy channel. Encode a message, flip bits, and watch the syndrome reveal the error.
@@ -1177,7 +1289,7 @@ footer {
 
 <!-- ==================== SECTION 7: STANDARD ARRAY ==================== -->
 <section id="standard-array">
-  <h2><span class="icon">🧩</span> <span data-i18n="s7.title">Standard array</span></h2>
+  <h2><span data-i18n="s7.title">Standard array</span></h2>
 
   <p data-i18n="s7.p1">
     The standard array groups all length-n binary vectors into cosets of the code. The first row contains all valid codewords, and each next row is built by adding a coset leader.
@@ -1200,6 +1312,10 @@ footer {
 </section>
 
 </main>
+
+<footer>
+  <p>© 2024 Teaching Hub · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a></p>
+</footer>
 
 <script>
 // ============================================================
@@ -1425,7 +1541,7 @@ const I18N = {
     's5.animate': '▶ Animar Conversion G→H',
     's6.title': 'Laboratorio de ruido',
     's7.title': 'Standard array',
-    's7.p1': 'El arreglo estandar agrupa todos los vectores binarios de longitud n en clases laterales del codigo. La primera fila contiene las palabras validas del codigo y cada fila siguiente se construye sumando un lider de coset.',
+    's7.p1': 'El standard array agrupa todos los vectores binarios de longitud n en clases laterales del codigo. La primera fila contiene las palabras validas del codigo y cada fila siguiente se construye sumando un lider de coset.',
     's7.codePreset': 'Codigo predefinido:',
     's7.build': 'Construir standard array',
     's7.info': 'n={n}, k={k}, numero de palabras codigo=2^k={cw}, numero de cosets=2^(n-k)={cs}',
@@ -1480,7 +1596,7 @@ const I18N = {
     's2.muted1': 'Mira paso a paso como se calcula cada bit de c.',
     's2.krows': 'k (filas):',
     's2.ncols': 'n (columnas):',
-    's2.why': 'Por que forma sistematica?',
+    's2.why': '¿Por qué forma sistemática?',
     's2.systematicText': 'Si el primer bloque k×k de G es identidad, G es sistematica.',
     's2.example': 'Ejemplo: matriz generadora sistematica SPC (4,3)',
     's2.enterG': 'Introduce G fila por fila (binario separado por espacios):',
@@ -1606,7 +1722,7 @@ const I18N = {
     's5.animate': '▶ Animar Conversion G→H',
     's6.title': 'Laboratorio de ruido',
     's7.title': 'Standard array',
-    's7.p1': 'O arranxo estandar agrupa todos os vectores binarios de lonxitude n en clases laterais do codigo. A primeira fila contén as palabras validas do codigo e cada fila seguinte constrúese sumando un lider de coset.',
+    's7.p1': 'O standard array agrupa todos os vectores binarios de lonxitude n en clases laterais do codigo. A primeira fila contén as palabras validas do codigo e cada fila seguinte constrúese sumando un lider de coset.',
     's7.codePreset': 'Codigo predefinido:',
     's7.build': 'Construir standard array',
     's7.info': 'n={n}, k={k}, numero de palabras codigo=2^k={cw}, numero de cosets=2^(n-k)={cs}',
@@ -1759,7 +1875,6 @@ let currentTheme = localStorage.getItem('cc_theme') || 'dark';
 
 function applyTheme() {
   document.documentElement.setAttribute('data-theme', currentTheme);
-  if ($('themeSelect')) $('themeSelect').value = currentTheme;
 }
 
 function setTheme(theme) {
@@ -1767,6 +1882,25 @@ function setTheme(theme) {
   localStorage.setItem('cc_theme', currentTheme);
   applyTheme();
 }
+
+function toggleTheme() {
+  setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+}
+
+// Hamburger menu toggle (mobile)
+function toggleMenu() {
+  const menu = document.getElementById('headerControls');
+  if (menu) menu.classList.toggle('open');
+}
+
+// Close hamburger menu on outside click
+document.addEventListener('click', function(e) {
+  const menu = document.getElementById('headerControls');
+  const btn = document.querySelector('.hamburger');
+  if (menu && btn && !btn.contains(e.target) && !menu.contains(e.target)) {
+    menu.classList.remove('open');
+  }
+});
 
 function t(key, vars = {}) {
   const dict = I18N[currentLang] || I18N.en;
@@ -1913,7 +2047,7 @@ function renderRowVector(v, opts = {}) {
 // ============================================================
 window.addEventListener('scroll', () => {
   const sections = document.querySelectorAll('section');
-  const navLinks = document.querySelectorAll('nav a');
+  const navLinks = document.querySelectorAll('#mainNav a');
   let current = '';
   sections.forEach(s => {
     if (window.scrollY >= s.offsetTop - 100) current = s.id;
